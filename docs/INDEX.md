@@ -3,7 +3,7 @@
 > File này là **mục lục trung tâm**, giúp AI (và người mới) nắm nhanh toàn bộ cấu trúc tài liệu của dự án.
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 00:55
+**Cập nhật lần cuối:** 2026-11-26 01:30
 
 ---
 
@@ -27,6 +27,7 @@
 | `lifehub_analysis_20261126.md` | 2026-11-26 | Phân tích kế hoạch: phiên A–D, phase, hợp đồng IPC | [./plan/lifehub_analysis_20261126.md](./plan/lifehub_analysis_20261126.md) |
 | `lifehub_schema_20261126.md` | 2026-11-26 | Schema SQL MVP (migration 001) | [./plan/lifehub_schema_20261126.md](./plan/lifehub_schema_20261126.md) |
 | `lifehub_A-khung_impl_20261126.md` | 2026-11-26 | Kế hoạch triển khai phiên A (khung + luồng mỏng) | [./plan/lifehub_A-khung_impl_20261126.md](./plan/lifehub_A-khung_impl_20261126.md) |
+| `log_20261126.md` | 2026-11-26 | Nhật ký phiên làm việc (phiên A) | [./log/log_20261126.md](./log/log_20261126.md) |
 
 ## 4. Cấu trúc Thư mục Tổng quan
 > 💡 **Quy hoạch tài liệu:** Hệ thống thư mục này được thiết kế tương ứng với các **AI Triggers** (như `#plan`, `#explain`, `#audit`...) để AI tự động phân loại và lưu trữ file đúng vị trí.

@@ -145,11 +145,11 @@
 ### Phiên A: Khung ứng dụng
 Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_impl_20261126.md)
 
-#### 📍 Phase A1: Khung chạy được + CI
+#### 📍 Phase A1: Khung chạy được + CI ✅
 - **Việc:**
-  - [ ] Khởi tạo Tauri 2 + React + TS + Vite đúng cấu trúc spec 7.3 (chỉ tạo thư mục khi dùng); `.gitignore`.
-  - [ ] ESLint, Prettier, TS strict, `cargo fmt`, `cargo clippy`.
-  - [ ] GitHub Actions `windows-latest`: lint → test → build bộ cài NSIS, đăng file `.exe` làm artifact.
+  - [x] Khởi tạo Tauri 2 + React + TS + Vite đúng cấu trúc spec 7.3 (chỉ tạo thư mục khi dùng); `.gitignore`.
+  - [x] ESLint, Prettier, TS strict, `cargo fmt`, `cargo clippy`.
+  - [x] GitHub Actions `windows-latest`: lint → test → build bộ cài NSIS, đăng file `.exe` làm artifact.
 - **Xong khi (kiểm tra được):** `npm run tauri dev` mở được cửa sổ; `npm run tauri build` ra file `*-setup.exe`; CI xanh trên GitHub.
 
 #### 📍 Phase A2: Luồng mỏng Quick Capture → SQLite → Inbox

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+.env*
+*.db
+*.db-wal
+*.db-shm
+.claude/settings.local.json
+.claude/worktrees/
+.claude/skills/

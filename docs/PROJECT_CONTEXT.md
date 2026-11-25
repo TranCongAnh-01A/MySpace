@@ -2,7 +2,7 @@
 
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 00:55
+**Cập nhật lần cuối:** 2026-11-26 01:30
 
 ---
 
@@ -11,7 +11,7 @@
 - **Thư mục:** `D:\04.Project_me\MySpace`
 - **Mục tiêu chính:** ứng dụng desktop Windows (`.exe`) local-first gom Inbox/Quick Capture, Tasks, Projects, Calendar, Notes, Dashboard; dự án chủ lực cho CV. Spec: [./spec/lifehub_spec_20261126.md](./spec/lifehub_spec_20261126.md)
 - **Đối tượng người dùng:** một người dùng trên Windows 10/11, không tài khoản
-- **Trạng thái hiện tại:** Đã phân tích kế hoạch ([analysis](./plan/lifehub_analysis_20261126.md)); chưa có code. Bước tiếp: phiên A (khung + luồng mỏng) trên `main`.
+- **Trạng thái hiện tại:** Phase A1 xong (khung Tauri 2 + React + CI, build ra `LifeHub_0.1.0_x64-setup.exe`; CI trên GitHub chưa kiểm vì chưa push). Bước tiếp: Phase A2 (luồng Quick Capture → Inbox) trên `main`.
 
 ## 2. Tech Stack
 | Tầng | Công nghệ | Phiên bản | Ghi chú |
@@ -36,7 +36,7 @@ flowchart LR
 
 ## 4. Ràng buộc Kỹ thuật & Nghiệp vụ
 - Ràng buộc kỹ thuật: offline hoàn toàn; không tải script/font từ mạng; capability Tauri tối thiểu; một kết nối ghi SQLite.
-- **Git/GitHub:** có git, remote `origin` = https://github.com/TranCongAnh-01A/MySpace.git, nhánh mặc định `main` (kiểm tra 2026-11-26). Máy chưa cài `gh`. Chưa có `.gitignore` — phiên A tạo.
+- **Git/GitHub:** có git, remote `origin` = https://github.com/TranCongAnh-01A/MySpace.git, nhánh mặc định `main` (kiểm tra 2026-11-26). Máy chưa cài `gh`. `.gitignore` đã tạo (A1).
 - Ràng buộc nghiệp vụ: xem quy tắc đã chốt ở [analysis mục 3](./plan/lifehub_analysis_20261126.md) và [schema mục 3](./plan/lifehub_schema_20261126.md).
 - Các quy định đặc thù (pháp lý, bảo mật ngành, v.v.): ...
 
@@ -53,7 +53,7 @@ MySpace/
 ## 6. Danh sách Module/Tính năng Chính
 | Module | Mô tả | Trạng thái |
 |---|---|---|
-| Khung + Quick Capture → Inbox | Phiên A | Chưa bắt đầu |
+| Khung + Quick Capture → Inbox | Phiên A | A1 ✅, A2 chưa làm |
 | Inbox, Tasks, Search | v0.2 (B2 + C2) | Chưa bắt đầu |
 | Projects, Kanban, Dashboard | v0.3 (B3 + C3) | Chưa bắt đầu |
 | Calendar, Reminders | v0.4 (B4 + C4) | Chưa bắt đầu |
