@@ -152,12 +152,12 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [x] GitHub Actions `windows-latest`: lint → test → build bộ cài NSIS, đăng file `.exe` làm artifact.
 - **Xong khi (kiểm tra được):** `npm run tauri dev` mở được cửa sổ; `npm run tauri build` ra file `*-setup.exe`; CI xanh trên GitHub.
 
-#### 📍 Phase A2: Luồng mỏng Quick Capture → SQLite → Inbox
+#### 📍 Phase A2: Luồng mỏng Quick Capture → SQLite → Inbox ✅
 - **Việc:**
-  - [ ] `db/`: mở `lifehub.db` trong thư mục dữ liệu của app, đặt pragma, chạy migration `001` (toàn bộ schema), sao lưu trước khi migrate.
-  - [ ] `error.rs` (AppError), ts-rs sinh bindings, `inbox_create` và `inbox_list` chia đủ 4 lớp, có test in-memory.
-  - [ ] Cửa sổ chính hiện danh sách Inbox (UI thô); cửa sổ Quick Capture riêng, phím `Ctrl+Shift+Space`, Enter để lưu, Esc để đóng; phát `entity-changed` để danh sách tự làm mới.
-  - [ ] Khay hệ thống (Mở, Ghi nhanh, Thoát), single-instance, window-state, đóng cửa sổ thì ẩn xuống khay.
+  - [x] `db/`: mở `lifehub.db` trong thư mục dữ liệu của app, đặt pragma, chạy migration `001` (toàn bộ schema), sao lưu trước khi migrate.
+  - [x] `error.rs` (AppError), ts-rs sinh bindings, `inbox_create` và `inbox_list` chia đủ 4 lớp, có test in-memory.
+  - [x] Cửa sổ chính hiện danh sách Inbox (UI thô); cửa sổ Quick Capture riêng, phím `Ctrl+Shift+Space`, Enter để lưu, Esc để đóng; phát `entity-changed` để danh sách tự làm mới.
+  - [x] Khay hệ thống (Mở, Ghi nhanh, Thoát), single-instance, window-state, đóng cửa sổ thì ẩn xuống khay.
 - **Xong khi (kiểm tra được):** cài bản `.exe`, ẩn app xuống khay, nhấn phím tắt, gõ một dòng rồi Enter → dòng đó hiện trong Inbox, và vẫn còn sau khi thoát hẳn rồi mở lại. `cargo test` xanh.
 
 ### Phiên B: Core Rust

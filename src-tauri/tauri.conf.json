@@ -22,10 +22,23 @@
         "minHeight": 600,
         "decorations": false,
         "center": true
+      },
+      {
+        "label": "quick-capture",
+        "title": "LifeHub Quick Capture",
+        "url": "quick-capture.html",
+        "width": 560,
+        "height": 72,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "visible": false,
+        "center": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost ws://localhost:1420"
     }
   },
   "bundle": {
