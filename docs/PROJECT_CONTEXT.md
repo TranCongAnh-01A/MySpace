@@ -2,54 +2,63 @@
 
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 00:32
+**Cập nhật lần cuối:** 2026-11-26 00:55
 
 ---
 
 ## 1. Tổng quan Dự án
-- **Tên dự án:** MySpace
+- **Tên dự án:** LifeHub (repo/thư mục: MySpace) — chờ người dùng chốt tên và identifier `com.lifehub.app`
 - **Thư mục:** `D:\04.Project_me\MySpace`
-- **Mục tiêu chính:** ...
-- **Đối tượng người dùng:** ...
-- **Trạng thái hiện tại:** Khởi tạo — mới có `docs/`, chưa có code, chưa có kế hoạch
+- **Mục tiêu chính:** ứng dụng desktop Windows (`.exe`) local-first gom Inbox/Quick Capture, Tasks, Projects, Calendar, Notes, Dashboard; dự án chủ lực cho CV. Spec: [./spec/lifehub_spec_20261126.md](./spec/lifehub_spec_20261126.md)
+- **Đối tượng người dùng:** một người dùng trên Windows 10/11, không tài khoản
+- **Trạng thái hiện tại:** Đã phân tích kế hoạch ([analysis](./plan/lifehub_analysis_20261126.md)); chưa có code. Bước tiếp: phiên A (khung + luồng mỏng) trên `main`.
 
 ## 2. Tech Stack
 | Tầng | Công nghệ | Phiên bản | Ghi chú |
 |---|---|---|---|
-| Frontend | ... | ... | ... |
-| Backend | ... | ... | ... |
-| Database | ... | ... | ... |
-| DevOps/Hạ tầng | ... | ... | ... |
+| Frontend | React + TypeScript + Vite, Tailwind v4, shadcn/ui, TanStack Query, Zustand, React Router, Tiptap, FullCalendar (MIT), dnd-kit | React 19 | WebView2 |
+| Backend | Rust core trong Tauri 2 (rusqlite, rusqlite_migration, ts-rs, tokio, tracing) | Rust 1.99 | nghiệp vụ chỉ ở Rust (ADR-003) |
+| Database | SQLite (WAL, FTS5 `unicode61 remove_diacritics 2`) | bundled | [schema](./plan/lifehub_schema_20261126.md) |
+| DevOps/Hạ tầng | GitHub Actions `windows-latest`, tauri-action, NSIS, updater qua GitHub Releases | — | máy có Node 22, npm 11, MSVC Build Tools 2019 |
 
 ## 3. Kiến trúc Tổng quan
-- **Mô hình kiến trúc:** (VD: Clean Architecture, MVVM, BLoC, Microservices...)
+- **Mô hình kiến trúc:** Tauri 2; Rust core là modular monolith theo chiều dọc (domain / application / infrastructure / commands mỗi module); frontend chỉ gọi command qua IPC có kiểu.
 - **Sơ đồ luồng chính** *(khuyến khích dùng Mermaid)*:
 ```mermaid
 flowchart LR
-    A[Client] --> B[API Gateway]
-    B --> C[Service Layer]
-    C --> D[(Database)]
+    UI[React UI / Quick Capture] -->|invoke| CMD[Tauri commands]
+    CMD --> MOD[Rust modules]
+    MOD --> DB[(SQLite + FTS5)]
+    SCH[Reminder scheduler] --> DB
+    SCH --> WN[Windows notifications]
+    CMD -. entity-changed .-> UI
 ```
 
 ## 4. Ràng buộc Kỹ thuật & Nghiệp vụ
-- Ràng buộc kỹ thuật: ...
-- **Git/GitHub:** chưa có git, chưa có remote GitHub (kiểm tra 2026-11-26). Máy chưa cài `gh`. Chưa có git thì các session phải chạy tuần tự.
-- Ràng buộc nghiệp vụ: ...
+- Ràng buộc kỹ thuật: offline hoàn toàn; không tải script/font từ mạng; capability Tauri tối thiểu; một kết nối ghi SQLite.
+- **Git/GitHub:** có git, remote `origin` = https://github.com/TranCongAnh-01A/MySpace.git, nhánh mặc định `main` (kiểm tra 2026-11-26). Máy chưa cài `gh`. Chưa có `.gitignore` — phiên A tạo.
+- Ràng buộc nghiệp vụ: xem quy tắc đã chốt ở [analysis mục 3](./plan/lifehub_analysis_20261126.md) và [schema mục 3](./plan/lifehub_schema_20261126.md).
 - Các quy định đặc thù (pháp lý, bảo mật ngành, v.v.): ...
 
 ## 5. Quy ước Đặt tên & Cấu trúc Thư mục
 ```
-project-root/
-├── src/ (hoặc lib/)
-├── docs/
-├── tests/
-└── ...
+MySpace/
+├── src/          # React (phiên C)
+├── src-tauri/    # Rust core (phiên B)
+├── tests/e2e/    # phiên D
+├── .github/      # CI
+└── docs/
 ```
 
 ## 6. Danh sách Module/Tính năng Chính
 | Module | Mô tả | Trạng thái |
 |---|---|---|
-| ... | ... | ... |
+| Khung + Quick Capture → Inbox | Phiên A | Chưa bắt đầu |
+| Inbox, Tasks, Search | v0.2 (B2 + C2) | Chưa bắt đầu |
+| Projects, Kanban, Dashboard | v0.3 (B3 + C3) | Chưa bắt đầu |
+| Calendar, Reminders | v0.4 (B4 + C4) | Chưa bắt đầu |
+| Notes | v0.5 (B5 + C5) | Chưa bắt đầu |
+| E2E, Auto Update, v1.0 | Phiên D | Chưa bắt đầu |
 
 ## 7. Liên kết Liên quan
 - Xem thêm tại [Bản đồ tài liệu](./INDEX.md)

@@ -3,7 +3,7 @@
 > File này là **mục lục trung tâm**, giúp AI (và người mới) nắm nhanh toàn bộ cấu trúc tài liệu của dự án.
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 00:32
+**Cập nhật lần cuối:** 2026-11-26 00:55
 
 ---
 
@@ -23,7 +23,10 @@
 ## 3. Tài liệu Kiểm toán / Báo cáo (có ngày tháng, không ghi đè)
 | File | Ngày tạo | Ghi chú | Link |
 |---|---|---|---|
-| _(ví dụ)_ `[ten_du_an]_audit_20260712.md` | 2026-07-12 | Audit toàn diện lần đầu | [./ten_du_an_audit_20260712.md](./ten_du_an_audit_20260712.md) |
+| `lifehub_spec_20261126.md` | 2026-11-26 | Kế hoạch gốc của người dùng (Claude chỉ đọc) | [./spec/lifehub_spec_20261126.md](./spec/lifehub_spec_20261126.md) |
+| `lifehub_analysis_20261126.md` | 2026-11-26 | Phân tích kế hoạch: phiên A–D, phase, hợp đồng IPC | [./plan/lifehub_analysis_20261126.md](./plan/lifehub_analysis_20261126.md) |
+| `lifehub_schema_20261126.md` | 2026-11-26 | Schema SQL MVP (migration 001) | [./plan/lifehub_schema_20261126.md](./plan/lifehub_schema_20261126.md) |
+| `lifehub_A-khung_impl_20261126.md` | 2026-11-26 | Kế hoạch triển khai phiên A (khung + luồng mỏng) | [./plan/lifehub_A-khung_impl_20261126.md](./plan/lifehub_A-khung_impl_20261126.md) |
 
 ## 4. Cấu trúc Thư mục Tổng quan
 > 💡 **Quy hoạch tài liệu:** Hệ thống thư mục này được thiết kế tương ứng với các **AI Triggers** (như `#plan`, `#explain`, `#audit`...) để AI tự động phân loại và lưu trữ file đúng vị trí.
@@ -40,12 +43,16 @@ docs/
 ├── misc/                   # Tài liệu khác
 │   └── TEMPLATE_file.md
 ├── plan/                   # Kế hoạch, phân tích, triển khai (Trigger: #plan)
+│   ├── lifehub_analysis_20261126.md
+│   ├── lifehub_schema_20261126.md
+│   ├── lifehub_A-khung_impl_20261126.md
 │   ├── TEMPLATE_analysis.md
 │   ├── TEMPLATE_impl.md
 │   └── TEMPLATE_plan.md
 ├── review/                 # Báo cáo code review (Trigger: #review)
 │   └── TEMPLATE_review.md
 ├── spec/                   # Đặc tả yêu cầu của người dùng (Trigger: #spec)
+│   ├── lifehub_spec_20261126.md
 │   └── TEMPLATE_spec.md
 ├── INDEX.md                # [CORE] Bản đồ tài liệu
 ├── LOCAL_RULE.md           # [CORE] Quy tắc tối cao của dự án
