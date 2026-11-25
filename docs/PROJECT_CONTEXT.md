@@ -2,7 +2,7 @@
 
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 01:50
+**Cập nhật lần cuối:** 2026-11-26 02:05
 
 ---
 
@@ -11,7 +11,7 @@
 - **Thư mục:** `D:\04.Project_me\MySpace`
 - **Mục tiêu chính:** ứng dụng desktop Windows (`.exe`) local-first gom Inbox/Quick Capture, Tasks, Projects, Calendar, Notes, Dashboard; dự án chủ lực cho CV. Spec: [./spec/lifehub_spec_20261126.md](./spec/lifehub_spec_20261126.md)
 - **Đối tượng người dùng:** một người dùng trên Windows 10/11, không tài khoản
-- **Trạng thái hiện tại:** Phiên A xong (A1 + A2): khung Tauri 2 + React + CI, DB SQLite (migration 001), module `inbox` 4 lớp (mẫu cho phiên B), luồng Quick Capture → Inbox, khay, single-instance. Bước tiếp: phiên B (`feat/core`) và C (`feat/ui`). CI GitHub chưa xác nhận xanh (repo private, chờ người dùng xem).
+- **Trạng thái hiện tại:** Phiên A xong (A1 + A2): khung Tauri 2 + React + CI, DB SQLite (migration 001), module `inbox` 4 lớp (mẫu cho phiên B), luồng Quick Capture → Inbox, khay, single-instance. Bước tiếp: phiên B (`feat/core`) và C (`feat/ui`). CI GitHub xanh (run #1 A1, #2 A2). Phiên chính đã đối chiếu và chạy lại lint/vitest/cargo test: xanh. Còn người dùng tự thử: menu khay "Thoát" và `Ctrl+Q`. ADR 001–008 ở [./adr/](./adr/).
 
 ## 2. Tech Stack
 | Tầng | Công nghệ | Phiên bản | Ghi chú |

@@ -3,7 +3,7 @@
 > File này là **mục lục trung tâm**, giúp AI (và người mới) nắm nhanh toàn bộ cấu trúc tài liệu của dự án.
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 01:30
+**Cập nhật lần cuối:** 2026-11-26 02:05
 
 ---
 
@@ -29,10 +29,23 @@
 | `lifehub_A-khung_impl_20261126.md` | 2026-11-26 | Kế hoạch triển khai phiên A (khung + luồng mỏng) | [./plan/lifehub_A-khung_impl_20261126.md](./plan/lifehub_A-khung_impl_20261126.md) |
 | `log_20261126.md` | 2026-11-26 | Nhật ký phiên làm việc (phiên A) | [./log/log_20261126.md](./log/log_20261126.md) |
 
+## 3b. Quyết định kiến trúc (docs/adr/, tên cố định)
+| File | Quyết định | Link |
+|---|---|---|
+| ADR-001 | Nền tảng desktop: Tauri 2 | [./adr/ADR-001-nen-tang-tauri.md](./adr/ADR-001-nen-tang-tauri.md) |
+| ADR-002 | Local-first, không tài khoản | [./adr/ADR-002-local-first.md](./adr/ADR-002-local-first.md) |
+| ADR-003 | Nghiệp vụ nằm ở Rust | [./adr/ADR-003-nghiep-vu-o-rust.md](./adr/ADR-003-nghiep-vu-o-rust.md) |
+| ADR-004 | Tìm kiếm SQLite FTS5 | [./adr/ADR-004-tim-kiem-fts5.md](./adr/ADR-004-tim-kiem-fts5.md) |
+| ADR-005 | Trạng thái Task cố định | [./adr/ADR-005-trang-thai-task-co-dinh.md](./adr/ADR-005-trang-thai-task-co-dinh.md) |
+| ADR-006 | Fractional indexing | [./adr/ADR-006-fractional-indexing.md](./adr/ADR-006-fractional-indexing.md) |
+| ADR-007 | Phạm vi lặp lại | [./adr/ADR-007-pham-vi-lap-lai.md](./adr/ADR-007-pham-vi-lap-lai.md) |
+| ADR-008 | Phân phối, cập nhật, ký số | [./adr/ADR-008-phan-phoi.md](./adr/ADR-008-phan-phoi.md) |
+
 ## 4. Cấu trúc Thư mục Tổng quan
 > 💡 **Quy hoạch tài liệu:** Hệ thống thư mục này được thiết kế tương ứng với các **AI Triggers** (như `#plan`, `#explain`, `#audit`...) để AI tự động phân loại và lưu trữ file đúng vị trí.
 ```
 docs/
+├── adr/                    # Quyết định kiến trúc ADR-001…008 (tên cố định)
 ├── audit/                  # Báo cáo kiểm toán (Trigger: #audit)
 │   └── TEMPLATE_audit_YYYYMMDD.md
 ├── explain/                # Giải thích logic code (Trigger: #explain)
