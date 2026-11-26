@@ -66,6 +66,7 @@ pub trait TaskRepository {
     fn project_is_active(&self, id: &str) -> AppResult<bool>;
     fn replace_tags(&self, task_id: &str, tag_ids: &[String]) -> AppResult<()>;
     fn checklist(&self, task_id: &str) -> AppResult<Vec<ChecklistItem>>;
+    fn note_ids(&self, task_id: &str) -> AppResult<Vec<String>>;
     fn checklist_get(&self, id: &str) -> AppResult<Option<ChecklistItem>>;
     fn checklist_insert(&self, item: &ChecklistItem) -> AppResult<()>;
     fn checklist_update(&self, item: &ChecklistItem) -> AppResult<()>;
@@ -141,7 +142,7 @@ pub fn get_detail(repo: &dyn TaskRepository, id: &str) -> AppResult<TaskDetail> 
         checklist: repo.checklist(id)?,
         reminders: repo.reminders(id)?,
         task,
-        note_ids: Vec::new(),
+        note_ids: repo.note_ids(id)?,
     })
 }
 

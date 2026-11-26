@@ -277,9 +277,10 @@ fn purge_removes_children_and_detaches_notes() {
 
     // Chưa tới hạn thì giữ; quá hạn thì xoá hẳn.
     assert_eq!(trash_app::purge_expired(&conn, &at(10, 3), 30).unwrap(), 0);
-    assert_eq!(trash_app::purge_expired(&conn, &at(26, 3), 10).unwrap(), 2);
+    // Project + Task + Note đã xoá cùng Project (từ B5, `WithChildren` xoá cả Note).
+    assert_eq!(trash_app::purge_expired(&conn, &at(26, 3), 10).unwrap(), 3);
     assert_eq!((count(&conn, "projects"), count(&conn, "tasks")), (0, 0));
-    assert_eq!(col(&conn, "notes", "project_id", "n1"), None);
+    assert_eq!(count(&conn, "notes"), 0);
     assert_eq!(count(&conn, "search_map"), 0);
 
     // trash_empty cũng xoá Project.

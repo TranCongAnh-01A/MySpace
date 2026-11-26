@@ -2,7 +2,8 @@ use serde::Serialize;
 use ts_rs::TS;
 
 use crate::modules::calendar::domain::CalendarItem;
-use crate::modules::projects::domain::{NoteSummary, ProjectProgress};
+use crate::modules::notes::domain::NoteSummary;
+use crate::modules::projects::domain::ProjectProgress;
 use crate::modules::tasks::domain::Task;
 
 /// Dữ liệu trang Today.

@@ -248,7 +248,7 @@ pub struct ChecklistItem {
 pub struct TaskDetail {
     pub task: Task,
     pub checklist: Vec<ChecklistItem>,
-    /// Rỗng tới v0.5 (Notes).
+    /// Note chưa xoá liên kết với Task.
     pub note_ids: Vec<String>,
     pub reminders: Vec<Reminder>,
 }

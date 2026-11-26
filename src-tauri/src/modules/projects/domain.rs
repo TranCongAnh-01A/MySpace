@@ -3,6 +3,7 @@ use ts_rs::TS;
 
 use crate::error::{AppError, AppResult};
 use crate::modules::areas::domain::validate_color;
+pub use crate::modules::notes::domain::NoteSummary;
 use crate::modules::tasks::domain::validate_date;
 
 pub const MAX_NAME_CHARS: usize = 100;
@@ -168,19 +169,6 @@ impl StatusCounts {
     pub fn total(&self) -> u32 {
         self.todo + self.in_progress + self.review + self.done
     }
-}
-
-/// Note chưa có ở v0.3: mọi danh sách `NoteSummary` đều rỗng.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../src/lib/ipc/bindings/")]
-pub struct NoteSummary {
-    pub id: String,
-    pub title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[ts(optional)]
-    pub project_id: Option<String>,
-    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]

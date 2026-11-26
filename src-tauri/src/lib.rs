@@ -49,6 +49,7 @@ fn startup_maintenance(conn: &mut rusqlite::Connection, trash_retention_days: u3
         .and_then(|tx| {
             search_app::reindex_if_empty(&tx)?;
             search_app::reindex_missing_projects(&tx)?;
+            search_app::reindex_missing_notes(&tx)?;
             let purged = trash_app::purge_expired(&tx, &SystemClock, trash_retention_days)?;
             tx.commit()?;
             Ok(purged)
@@ -95,6 +96,7 @@ pub fn run() {
             startup_maintenance(&mut conn, settings.trash_retention_days);
             app.manage(Db::new(conn));
             app.manage(dirs.clone());
+            app.manage(system::windows::ExitGate::default());
 
             // Tay cầm scheduler phải có trước khi dựng khay (ô "Tạm dừng thông báo").
             let scheduler = SchedulerHandle::new();
@@ -129,7 +131,7 @@ pub fn run() {
                     api.prevent_close();
                     let _ = window.hide();
                 } else {
-                    window.app_handle().exit(0);
+                    system::windows::request_exit(window.app_handle());
                 }
             }
             WindowEvent::Focused(false) if window.label() == QUICK_CAPTURE => {
@@ -143,6 +145,16 @@ pub fn run() {
             modules::inbox::commands::inbox_update,
             modules::inbox::commands::inbox_delete,
             modules::inbox::commands::inbox_convert_to_task,
+            modules::inbox::commands::inbox_convert_to_note,
+            modules::notes::commands::note_list,
+            modules::notes::commands::note_get,
+            modules::notes::commands::note_create,
+            modules::notes::commands::note_save,
+            modules::notes::commands::note_move,
+            modules::notes::commands::note_delete,
+            modules::notes::commands::note_link_task,
+            modules::notes::commands::note_unlink_task,
+            modules::notes::commands::note_set_tags,
             modules::tasks::commands::task_list,
             modules::tasks::commands::task_get,
             modules::tasks::commands::task_create,
@@ -205,6 +217,7 @@ pub fn run() {
             system::commands::open_log_folder,
             system::commands::app_info,
             system::windows::app_quit,
+            system::windows::app_quit_ready,
         ])
         .run(tauri::generate_context!())
         .expect("không chạy được ứng dụng LifeHub");

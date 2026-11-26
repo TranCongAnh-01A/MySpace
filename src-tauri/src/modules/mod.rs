@@ -2,6 +2,7 @@ pub mod areas;
 pub mod calendar;
 pub mod dashboard;
 pub mod inbox;
+pub mod notes;
 pub mod projects;
 pub mod search;
 pub mod settings;

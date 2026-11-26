@@ -7,6 +7,7 @@ pub enum TrashKind {
     Task,
     Inbox,
     Project,
+    Note,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]

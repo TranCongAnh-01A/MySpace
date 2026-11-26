@@ -1,6 +1,8 @@
 use crate::clock::Clock;
 use crate::error::{AppError, AppResult, ErrorCode};
 use crate::ids;
+use crate::modules::notes::application::{self as notes, NoteRepository};
+use crate::modules::notes::domain::{paragraph_doc, Note, NoteCreate};
 use crate::modules::tasks::application::{self as tasks, TaskRepository};
 use crate::modules::tasks::domain::{Task, TaskCreate};
 use crate::modules::tasks::timectx::TimeCtx;
@@ -18,6 +20,8 @@ pub trait InboxRepository {
     fn soft_delete(&self, id: &str) -> AppResult<()>;
     /// Đặt `Processed` + `converted_task_id` + `processed_at` trong một câu lệnh.
     fn mark_processed(&self, id: &str, task_id: &str) -> AppResult<()>;
+    /// Như `mark_processed` nhưng đặt `converted_note_id`.
+    fn mark_processed_note(&self, id: &str, note_id: &str) -> AppResult<()>;
 }
 
 fn require(repo: &dyn InboxRepository, id: &str) -> AppResult<InboxItem> {
@@ -60,6 +64,33 @@ pub fn convert_to_task(
     let task = tasks::create(task_repo, ctx, input)?;
     inbox.mark_processed(id, &task.id)?;
     Ok(task)
+}
+
+/// Biến mục Inbox thành Note (gọi trong một transaction). Đổi lần hai thì `CONFLICT`.
+/// Thiếu `title` thì lấy 80 ký tự đầu của mục; thiếu `contentJson` thì dùng một đoạn văn
+/// chứa toàn bộ nội dung mục.
+pub fn convert_to_note(
+    inbox: &dyn InboxRepository,
+    note_repo: &dyn NoteRepository,
+    clock: &dyn Clock,
+    id: &str,
+    input: &NoteCreate,
+) -> AppResult<Note> {
+    let item = require(inbox, id)?;
+    if item.status != InboxStatus::Open {
+        return Err(already_processed());
+    }
+    let mut input = input.clone();
+    if input.title.as_deref().map_or(true, |t| t.trim().is_empty()) {
+        let first = item.content.lines().next().unwrap_or("");
+        input.title = Some(first.chars().take(80).collect());
+    }
+    if input.content_json.is_none() {
+        input.content_json = Some(paragraph_doc(&item.content));
+    }
+    let note = notes::create(note_repo, &clock.now_iso(), &input)?;
+    inbox.mark_processed_note(id, &note.id)?;
+    Ok(note)
 }
 
 pub fn create(

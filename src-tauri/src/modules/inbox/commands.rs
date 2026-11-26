@@ -5,6 +5,8 @@ use crate::clock::SystemClock;
 use crate::db::Db;
 use crate::error::AppResult;
 use crate::modules::emit_entity_changed;
+use crate::modules::notes::domain::{Note, NoteCreate};
+use crate::modules::notes::infrastructure::SqliteNoteRepository;
 use crate::modules::settings::commands::SettingsState;
 use crate::modules::tasks::domain::{Task, TaskCreate};
 use crate::modules::tasks::infrastructure::SqliteTaskRepository;
@@ -70,6 +72,34 @@ pub fn inbox_delete(app: AppHandle, db: State<'_, Db>, id: String) -> AppResult<
     }
     emit_entity_changed(&app, "inbox", vec![id]);
     Ok(())
+}
+
+#[tauri::command]
+pub fn inbox_convert_to_note(
+    app: AppHandle,
+    db: State<'_, Db>,
+    id: String,
+    note: NoteCreate,
+) -> AppResult<Note> {
+    let created = {
+        let mut conn = db.lock()?;
+        let tx = conn.transaction()?;
+        let created = application::convert_to_note(
+            &SqliteInboxRepository::new(&tx, &SystemClock),
+            &SqliteNoteRepository::new(&tx, &SystemClock),
+            &SystemClock,
+            &id,
+            &note,
+        )?;
+        tx.commit()?;
+        created
+    };
+    emit_entity_changed(&app, "inbox", vec![id]);
+    emit_entity_changed(&app, "note", vec![created.id.clone()]);
+    if note.task_id.is_some() {
+        emit_entity_changed(&app, "task", note.task_id.into_iter().collect());
+    }
+    Ok(created)
 }
 
 #[tauri::command]

@@ -5,6 +5,6 @@ import type { Task } from "./Task";
 
 export type TaskDetail = { task: Task, checklist: Array<ChecklistItem>, 
 /**
- * Rỗng tới v0.5 (Notes).
+ * Note chưa xoá liên kết với Task.
  */
 noteIds: Array<string>, reminders: Array<Reminder>, };
