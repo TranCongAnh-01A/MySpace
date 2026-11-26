@@ -1,4 +1,5 @@
 pub mod areas;
+pub mod calendar;
 pub mod dashboard;
 pub mod inbox;
 pub mod projects;
@@ -9,7 +10,7 @@ pub mod tasks;
 pub mod trash;
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use ts_rs::TS;
 
 /// Payload của event `entity-changed`: frontend invalidate query theo `entity`.
@@ -29,5 +30,9 @@ pub fn emit_entity_changed(app: &AppHandle, entity: &str, ids: Vec<String>) {
     };
     if let Err(e) = app.emit("entity-changed", payload) {
         tracing::warn!(entity, error = %e, "không phát được entity-changed");
+    }
+    // Dữ liệu đổi (Task, Event, reminder, Settings...): scheduler tính lại lần nhắc kế tiếp.
+    if let Some(h) = app.try_state::<crate::reminders::scheduler::SchedulerHandle>() {
+        h.wake();
     }
 }

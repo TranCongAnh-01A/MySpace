@@ -1,4 +1,6 @@
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
+
+use crate::reminders::domain::Navigate;
 
 pub const MAIN: &str = "main";
 pub const QUICK_CAPTURE: &str = "quick-capture";
@@ -15,6 +17,17 @@ pub fn show_main(app: &AppHandle) {
         let _ = w.unminimize();
         let _ = w.set_focus();
     }
+}
+
+/// Phát event `navigate` tới frontend rồi hiện cửa sổ chính, đưa lên trước.
+pub fn navigate(app: &AppHandle, route: &str) {
+    let payload = Navigate {
+        route: route.to_string(),
+    };
+    if let Err(e) = app.emit("navigate", payload) {
+        tracing::warn!(error = %e, "không phát được navigate");
+    }
+    show_main(app);
 }
 
 /// Hiện cửa sổ Quick Capture ở giữa màn hình và focus.

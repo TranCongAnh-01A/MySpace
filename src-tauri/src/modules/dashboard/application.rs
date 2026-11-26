@@ -4,6 +4,7 @@ use rusqlite::Connection;
 
 use crate::clock::Clock;
 use crate::error::AppResult;
+use crate::modules::calendar::application as calendar;
 use crate::modules::projects::application as projects;
 use crate::modules::projects::domain::ProjectStatus;
 use crate::modules::projects::infrastructure::SqliteProjectRepository;
@@ -107,6 +108,7 @@ pub fn today(conn: &Connection, clock: &dyn Clock, ctx: &TimeCtx) -> AppResult<T
         upcoming,
         active_projects,
         recent_notes: Vec::new(), // Note có từ v0.5
+        schedule: calendar::today_schedule(conn, clock, ctx)?,
     })
 }
 

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, AppResult, ErrorCode};
 use crate::ids;
+use crate::reminders::domain::Reminder;
 use crate::sort_key;
 
 use super::domain::{
@@ -81,6 +82,14 @@ pub trait TaskRepository {
     fn series_insert(&self, series: &Series) -> AppResult<()>;
     fn series_update(&self, series: &Series) -> AppResult<()>;
     fn occurrence_exists(&self, series_id: &str, date: &str) -> AppResult<bool>;
+    /// Reminder của Task (mọi trạng thái, sắp theo `trigger_at`).
+    fn reminders(&self, task_id: &str) -> AppResult<Vec<Reminder>>;
+    /// Hạn đổi: tính lại `trigger_at` của reminder `Pending` có offset (mất hạn thì xoá chúng).
+    fn reminders_recompute(&self, task: &Task, ctx: &TimeCtx) -> AppResult<()>;
+    /// Task sang `Done`: reminder `Pending` thành `Dismissed`.
+    fn reminders_dismiss_pending(&self, task_id: &str) -> AppResult<()>;
+    /// Task lặp sinh lần tiếp theo: chép reminder dạng offset sang Task mới.
+    fn reminders_copy_offsets(&self, from_task: &str, to: &Task, ctx: &TimeCtx) -> AppResult<()>;
 }
 
 fn not_found() -> AppError {
@@ -130,6 +139,7 @@ pub fn get_detail(repo: &dyn TaskRepository, id: &str) -> AppResult<TaskDetail> 
     let task = require(repo, id)?;
     Ok(TaskDetail {
         checklist: repo.checklist(id)?,
+        reminders: repo.reminders(id)?,
         task,
         note_ids: Vec::new(),
     })
@@ -244,6 +254,7 @@ pub fn update(
         ));
     }
     let old_due_day = task.due_day(ctx);
+    let old_due = (task.due_date.clone(), task.due_at.clone());
     let old_project = task.project_id.clone();
 
     if let Some(v) = &patch.title {
@@ -335,6 +346,9 @@ pub fn update(
     }
 
     repo.save(&task)?;
+    if old_due != (task.due_date.clone(), task.due_at.clone()) {
+        repo.reminders_recompute(&task, ctx)?;
+    }
     let fresh = require(repo, id)?;
     if let Some(mut s) = series {
         if s.is_active {
@@ -439,6 +453,9 @@ fn finish_status_change(
     let became_done = task.status == TaskStatus::Done && task.completed_at.is_some();
     repo.save(&task)?;
     let task = require(repo, &task.id)?;
+    if became_done {
+        repo.reminders_dismiss_pending(&task.id)?;
+    }
     let next = if became_done {
         spawn_next(repo, ctx, &task)?
     } else {
@@ -505,6 +522,7 @@ fn spawn_next(repo: &dyn TaskRepository, ctx: &TimeCtx, done: &Task) -> AppResul
     task.sort_key = end_of_column_key(repo, &task, TaskStatus::Todo)?;
     repo.insert(&task)?;
     repo.replace_tags(&task.id, &tags)?;
+    repo.reminders_copy_offsets(&done.id, &task, ctx)?;
     // Checklist lấy theo Task vừa xong (phản ánh các sửa đổi mới nhất), chưa đánh dấu.
     let contents: Vec<String> = repo
         .checklist(&done.id)?

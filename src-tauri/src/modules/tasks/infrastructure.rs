@@ -7,6 +7,10 @@ use crate::error::{AppError, AppResult};
 use crate::ids::DEFAULT_WORKSPACE_ID;
 use crate::modules::search::infrastructure::{self as search, SearchKind};
 
+use crate::modules::calendar::infrastructure as events;
+use crate::reminders::domain::Reminder;
+use crate::reminders::repository as reminders;
+
 use super::application::{Series, SeriesTemplate, TaskRepository};
 use super::domain::{
     ChecklistItem, DueFilter, Frequency, Priority, Recurrence, Task, TaskFilter, TaskSort,
@@ -381,7 +385,9 @@ impl TaskRepository for SqliteTaskRepository<'_> {
              WHERE id = ?1 AND deleted_at IS NULL",
             params![id, now],
         )?;
-        // TODO(B4): xoá mềm thêm Event có task_id này và Reminder `Pending` của nó.
+        // Cùng mốc `now`: Event time block và Reminder `Pending` của Task / Event đó.
+        reminders::soft_delete_for_task(self.conn, id, &now)?;
+        events::soft_delete_for_task(self.conn, id, &now)?;
         search::remove(self.conn, SearchKind::Task, id)?;
         self.record(id, ChangeOp::Delete)
     }
@@ -587,6 +593,37 @@ impl TaskRepository for SqliteTaskRepository<'_> {
         Ok(())
     }
 
+    fn reminders(&self, task_id: &str) -> AppResult<Vec<Reminder>> {
+        reminders::list(self.conn, Some(task_id), None)
+    }
+
+    fn reminders_recompute(&self, task: &Task, ctx: &TimeCtx) -> AppResult<()> {
+        reminders::recompute_for_task(
+            self.conn,
+            self.clock,
+            ctx,
+            &task.id,
+            task.due_date.as_deref(),
+            task.due_at.as_deref(),
+        )
+    }
+
+    fn reminders_dismiss_pending(&self, task_id: &str) -> AppResult<()> {
+        reminders::dismiss_pending_for_task(self.conn, self.clock, task_id)
+    }
+
+    fn reminders_copy_offsets(&self, from_task: &str, to: &Task, ctx: &TimeCtx) -> AppResult<()> {
+        reminders::copy_offsets(
+            self.conn,
+            self.clock,
+            ctx,
+            from_task,
+            &to.id,
+            to.due_date.as_deref(),
+            to.due_at.as_deref(),
+        )
+    }
+
     fn occurrence_exists(&self, series_id: &str, date: &str) -> AppResult<bool> {
         let n: i64 = self.conn.query_row(
             "SELECT count(*) FROM tasks WHERE recurrence_series_id = ?1 AND occurrence_date = ?2",
@@ -623,6 +660,13 @@ pub fn list_deleted(conn: &Connection) -> AppResult<Vec<(String, String, String)
 /// Khôi phục Task: bỏ `deleted_at`, tách khỏi Project/Area đã bị xoá, index lại.
 pub fn restore(conn: &Connection, id: &str, clock: &dyn Clock) -> AppResult<bool> {
     let now = clock.now_iso();
+    let stamp: Option<String> = conn
+        .query_row(
+            "SELECT deleted_at FROM tasks WHERE id = ?1 AND deleted_at IS NOT NULL",
+            [id],
+            |r| r.get(0),
+        )
+        .optional()?;
     let changed = conn.execute(
         "UPDATE tasks SET deleted_at = NULL, version = version + 1, updated_at = ?2,
             project_id = CASE WHEN project_id IN (SELECT id FROM projects WHERE deleted_at IS NOT NULL)
@@ -634,6 +678,11 @@ pub fn restore(conn: &Connection, id: &str, clock: &dyn Clock) -> AppResult<bool
     )?;
     if changed == 0 {
         return Ok(false);
+    }
+    // Event time block và Reminder bị xoá cùng Task (đúng mốc) quay lại.
+    if let Some(stamp) = stamp {
+        reminders::restore_for_task(conn, id, &stamp, &now)?;
+        events::restore_for_task(conn, id, &stamp, &now)?;
     }
     let (title, description): (String, String) = conn.query_row(
         "SELECT title, description FROM tasks WHERE id = ?1",

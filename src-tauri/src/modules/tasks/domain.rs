@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::error::{AppError, AppResult};
+use crate::reminders::domain::Reminder;
 
 use super::timectx::{iso, parse_date, TimeCtx};
 
@@ -249,6 +250,7 @@ pub struct TaskDetail {
     pub checklist: Vec<ChecklistItem>,
     /// Rỗng tới v0.5 (Notes).
     pub note_ids: Vec<String>,
+    pub reminders: Vec<Reminder>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
