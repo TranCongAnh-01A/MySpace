@@ -9,8 +9,16 @@ import type {
   AreaCreate,
   AreaPatch,
   Backup,
+  CalendarItem,
+  Calendar,
   ChecklistItem,
   ChildMode,
+  Event,
+  EventCreate,
+  EventPatch,
+  MissedReminder,
+  Reminder,
+  ReminderSet,
   Project,
   ProjectCreate,
   ProjectOverview,
@@ -332,6 +340,79 @@ export function projectDelete(id: string, mode: ChildMode): Promise<void> {
 export function dashboardToday(): Promise<TodayView> {
   if (isMock) return mock.mockDashboardToday();
   return invoke<TodayView>('dashboard_today');
+}
+
+// ---- v0.4: calendar, reminders (hợp đồng B4 mục 2.1) ----
+
+export function calendarList(): Promise<Calendar[]> {
+  if (isMock) return mock.mockCalendarList();
+  return invoke<Calendar[]>('calendar_list');
+}
+
+/** `from`/`to` là ngày `YYYY-MM-DD`, cả hai đầu inclusive. */
+export function calendarRange(from: string, to: string): Promise<CalendarItem[]> {
+  if (isMock) return mock.mockCalendarRange(from, to);
+  return invoke<CalendarItem[]>('calendar_range', { from, to });
+}
+
+export function eventCreate(input: EventCreate): Promise<Event> {
+  if (isMock) return mock.mockEventCreate(input);
+  return invoke<Event>('event_create', { input });
+}
+
+export function eventUpdate(id: string, patch: EventPatch, baseVersion: number): Promise<Event> {
+  if (isMock) return mock.mockEventUpdate(id, patch, baseVersion);
+  return invoke<Event>('event_update', { id, patch, baseVersion });
+}
+
+export function eventDelete(id: string): Promise<void> {
+  if (isMock) return mock.mockEventDelete(id);
+  return invoke<void>('event_delete', { id });
+}
+
+export function taskScheduleBlock(
+  taskId: string,
+  startAt: string,
+  endAt: string,
+  calendarId?: string,
+): Promise<Event> {
+  if (isMock) return mock.mockTaskScheduleBlock(taskId, startAt, endAt, calendarId);
+  return invoke<Event>('task_schedule_block', {
+    taskId,
+    startAt,
+    endAt,
+    calendarId: calendarId ?? null,
+  });
+}
+
+export function reminderSet(input: ReminderSet): Promise<Reminder> {
+  if (isMock) return mock.mockReminderSet(input);
+  return invoke<Reminder>('reminder_set', { input });
+}
+
+export function reminderList(taskId?: string, eventId?: string): Promise<Reminder[]> {
+  if (isMock) return mock.mockReminderList(taskId, eventId);
+  return invoke<Reminder[]>('reminder_list', { taskId: taskId ?? null, eventId: eventId ?? null });
+}
+
+export function reminderDelete(id: string): Promise<void> {
+  if (isMock) return mock.mockReminderDelete(id);
+  return invoke<void>('reminder_delete', { id });
+}
+
+export function reminderMissedList(): Promise<MissedReminder[]> {
+  if (isMock) return mock.mockReminderMissedList();
+  return invoke<MissedReminder[]>('reminder_missed_list');
+}
+
+export function reminderDismiss(id: string): Promise<void> {
+  if (isMock) return mock.mockReminderDismiss(id);
+  return invoke<void>('reminder_dismiss', { id });
+}
+
+export function reminderDismissAll(): Promise<void> {
+  if (isMock) return mock.mockReminderDismissAll();
+  return invoke<void>('reminder_dismiss_all');
 }
 
 /** Chỉ có ở bản debug. Đã có dữ liệu mẫu → `CONFLICT`. */

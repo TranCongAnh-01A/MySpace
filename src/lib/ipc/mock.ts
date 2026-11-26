@@ -9,8 +9,15 @@ import type {
   AreaCreate,
   AreaPatch,
   Backup,
+  Calendar,
+  CalendarItem,
   ChecklistItem,
   ChildMode,
+  Event,
+  EventCreate,
+  EventPatch,
+  MissedReminder,
+  Navigate,
   Priority,
   Project,
   ProjectCreate,
@@ -18,6 +25,10 @@ import type {
   ProjectPatch,
   ProjectProgress,
   Recurrence,
+  Reminder,
+  ReminderFired,
+  ReminderSet,
+  ReminderStatus,
   SearchHit,
   SearchKind,
   SettingsPatch,
@@ -61,6 +72,20 @@ export function subscribeMockEvents(handler: (e: EntityChanged) => void): () => 
   listeners.add(handler);
   return () => {
     listeners.delete(handler);
+  };
+}
+const navListeners = new Set<(e: Navigate) => void>();
+export function subscribeMockNavigate(handler: (e: Navigate) => void): () => void {
+  navListeners.add(handler);
+  return () => {
+    navListeners.delete(handler);
+  };
+}
+const firedListeners = new Set<(e: ReminderFired) => void>();
+export function subscribeMockReminderFired(handler: (e: ReminderFired) => void): () => void {
+  firedListeners.add(handler);
+  return () => {
+    firedListeners.delete(handler);
   };
 }
 function emit(entity: string, ids: string[] = []) {
@@ -546,6 +571,9 @@ export function nextOccurrence(date: string, rec: Recurrence): string {
 function applyStatus(t: Task, status: TaskStatus): TaskStatusResult {
   let next: Task | undefined;
   if (status === 'Done' && t.status !== 'Done') {
+    reminders.forEach((r) => {
+      if (r.taskId === t.id && r.status === 'Pending') r.status = 'Dismissed';
+    });
     previousStatus.set(t.id, t.status);
     t.completedAt = nowIso();
     if (t.recurrence && (t.dueDate || t.dueAt)) {
@@ -564,6 +592,19 @@ function applyStatus(t: Task, status: TaskStatus): TaskStatusResult {
         ...(time ? { dueAt: localToUtc(nd, time, tzName()) } : { dueDate: nd }),
       });
       tasks.push(created);
+      const origin = originOfTask(created);
+      reminders
+        .filter((r) => r.taskId === t.id && !r.deletedAt && r.offsetMinutes !== undefined)
+        .forEach((r) => {
+          if (origin)
+            reminders.push({
+              id: crypto.randomUUID(),
+              taskId: created.id,
+              offsetMinutes: r.offsetMinutes ?? 0,
+              triggerAt: minus(origin, r.offsetMinutes ?? 0),
+              status: 'Pending',
+            });
+        });
       checklists
         .filter((c) => c.taskId === t.id)
         .forEach((c) =>
@@ -644,6 +685,7 @@ export function mockTaskGet(id: string): Promise<TaskDetail> {
         .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
         .map((c) => ({ ...c })),
       noteIds: [],
+      reminders: remindersOf({ taskId: id }),
     };
   });
 }
@@ -693,8 +735,24 @@ export function mockTaskUpdate(id: string, patch: TaskPatch, baseVersion: number
       ] as const
     ).forEach(setOrDel);
     validateTask(next);
+    // Object.assign không xoá khoá đã bị `delete` ở `next`: xoá thủ công các trường đặt về null.
+    (
+      [
+        'projectId',
+        'areaId',
+        'startDate',
+        'dueDate',
+        'dueAt',
+        'estimatedMinutes',
+        'recurrence',
+      ] as const
+    ).forEach((k) => {
+      if (next[k] === undefined) delete t[k];
+    });
     Object.assign(t, next);
     touch(t);
+    if (patch.dueDate !== undefined || patch.dueAt !== undefined)
+      recomputeReminders({ taskId: id });
     emit('task', [id]);
     return viewTask(t);
   });
@@ -750,8 +808,12 @@ export function mockTaskArchive(id: string, archived: boolean): Promise<void> {
 
 export function mockTaskDelete(id: string): Promise<void> {
   return delay(() => {
-    liveTask(id).deletedAt = nowIso();
+    const stamp = nowIso();
+    liveTask(id).deletedAt = stamp;
+    cascadeDeleteTask(id, stamp);
     emit('task', [id]);
+    emit('event');
+    emit('reminder');
   });
 }
 
@@ -816,8 +878,14 @@ export function mockTrashRestore(kind: TrashKind, id: string): Promise<void> {
     }
     const rec = kind === 'Task' ? tasks.find((t) => t.id === id) : inbox.find((i) => i.id === id);
     if (!rec?.deletedAt) fail('NOT_FOUND', 'Không tìm thấy trong Thùng rác');
+    const stamp = rec?.deletedAt;
     delete rec?.deletedAt;
+    if (kind === 'Task' && stamp) cascadeRestoreTask(stamp);
     emit(kind === 'Task' ? 'task' : 'inbox', [id]);
+    if (kind === 'Task') {
+      emit('event');
+      emit('reminder');
+    }
   });
 }
 
@@ -1265,6 +1333,7 @@ export function mockDashboardToday(): Promise<TodayView> {
         .filter((p) => !p.deletedAt && !p.archivedAt && p.status === 'Active')
         .map((p) => progressOf(p)),
       recentNotes: [],
+      schedule: rangeItems(today, today),
     };
   });
 }
@@ -1387,6 +1456,7 @@ function seedDemoInternal() {
         createdAt: new Date(Date.now() - i * 3_600_000).toISOString(),
       }),
   );
+  seedCalendarDemo(t0);
 }
 
 export function mockSeedDemoData(): Promise<void> {
@@ -1397,6 +1467,410 @@ export function mockSeedDemoData(): Promise<void> {
     emit('area');
     emit('tag');
     emit('inbox');
+  });
+}
+
+// ---- v0.4: calendar, reminders (quy tắc B4 mục 2.2) ----
+type EventRec = Event & { deletedAt?: string };
+type ReminderRec = Reminder & { deletedAt?: string };
+let events: EventRec[] = [];
+let reminders: ReminderRec[] = [];
+const defaultCalendar: Calendar = { id: 'default', name: 'Lịch của tôi', isDefault: true };
+
+const pubEvent = (e: EventRec): Event => {
+  const { deletedAt: _d, ...rest } = e;
+  void _d;
+  return { ...rest };
+};
+const pubReminder = (r: ReminderRec): Reminder => {
+  const { deletedAt: _d, ...rest } = r;
+  void _d;
+  return { ...rest };
+};
+const liveEvent = (id: string): EventRec =>
+  events.find((e) => e.id === id && !e.deletedAt) ?? fail('NOT_FOUND', 'Không tìm thấy sự kiện');
+
+/** Thời điểm gốc để tính offset: hạn / giờ bắt đầu; chỉ có ngày thì 09:00 địa phương. */
+function originOfTask(t: Task): string | undefined {
+  if (t.dueAt) return t.dueAt;
+  return t.dueDate ? localToUtc(t.dueDate, '09:00', tzName()) : undefined;
+}
+function originOfEvent(e: Event): string | undefined {
+  if (e.isAllDay) return e.startDate ? localToUtc(e.startDate, '09:00', tzName()) : undefined;
+  return e.startAt;
+}
+function originOf(src: { taskId?: string; eventId?: string }): string | undefined {
+  ensureSeed();
+  if (src.taskId) return originOfTask(liveTask(src.taskId));
+  if (src.eventId) return originOfEvent(liveEvent(src.eventId));
+  return undefined;
+}
+const minus = (iso: string, minutes: number) =>
+  new Date(new Date(iso).getTime() - minutes * 60000).toISOString();
+
+function remindersOf(src: { taskId?: string; eventId?: string }): Reminder[] {
+  return reminders
+    .filter(
+      (r) => !r.deletedAt && (src.taskId ? r.taskId === src.taskId : r.eventId === src.eventId),
+    )
+    .sort((a, b) => a.triggerAt.localeCompare(b.triggerAt))
+    .map(pubReminder);
+}
+
+/** Đổi hạn / giờ bắt đầu: tính lại reminder offset còn `Pending`; mất gốc thì xoá cứng. */
+function recomputeReminders(src: { taskId?: string; eventId?: string }) {
+  const origin = originOf(src);
+  reminders = reminders.filter((r) => {
+    const mine = src.taskId ? r.taskId === src.taskId : r.eventId === src.eventId;
+    if (!mine || r.deletedAt || r.status !== 'Pending' || r.offsetMinutes === undefined)
+      return true;
+    if (!origin) return false;
+    r.triggerAt = minus(origin, r.offsetMinutes);
+    return true;
+  });
+}
+
+function cascadeDeleteTask(taskId: string, stamp: string) {
+  const evIds = new Set<string>();
+  events.forEach((e) => {
+    if (e.taskId === taskId && !e.deletedAt) {
+      e.deletedAt = stamp;
+      evIds.add(e.id);
+    }
+  });
+  reminders.forEach((r) => {
+    if (
+      !r.deletedAt &&
+      r.status === 'Pending' &&
+      ((r.taskId && r.taskId === taskId) || (r.eventId && evIds.has(r.eventId)))
+    )
+      r.deletedAt = stamp;
+  });
+}
+function cascadeRestoreTask(stamp: string) {
+  events.forEach((e) => {
+    if (e.deletedAt === stamp) delete e.deletedAt;
+  });
+  reminders.forEach((r) => {
+    if (r.deletedAt === stamp) delete r.deletedAt;
+  });
+}
+
+function validateEvent(e: {
+  title: string;
+  isAllDay: boolean;
+  startAt?: string | undefined;
+  endAt?: string | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  taskId?: string | undefined;
+}) {
+  if (!e.title.trim()) fail('VALIDATION', 'Tiêu đề không được để trống');
+  if (e.title.length > 500) fail('VALIDATION', 'Tiêu đề tối đa 500 ký tự');
+  if (e.isAllDay) {
+    if (!e.startDate || !e.endDate || e.startAt || e.endAt)
+      fail('VALIDATION', 'Sự kiện cả ngày cần ngày bắt đầu và kết thúc');
+    else {
+      if (e.endDate < e.startDate) fail('VALIDATION', 'Ngày kết thúc phải từ ngày bắt đầu');
+      if (new Date(e.endDate).getTime() - new Date(e.startDate).getTime() > 365 * 86_400_000)
+        fail('VALIDATION', 'Sự kiện cả ngày dài tối đa 366 ngày');
+    }
+  } else if (!e.startAt || !e.endAt || e.startDate || e.endDate) {
+    fail('VALIDATION', 'Sự kiện có giờ cần giờ bắt đầu và kết thúc');
+  } else {
+    const ms = new Date(e.endAt).getTime() - new Date(e.startAt).getTime();
+    if (!(ms > 0)) fail('VALIDATION', 'Giờ kết thúc phải sau giờ bắt đầu');
+    if (ms > 14 * 86_400_000) fail('VALIDATION', 'Sự kiện có giờ dài tối đa 14 ngày');
+  }
+  if (e.taskId) liveTask(e.taskId);
+}
+
+function createEventInternal(input: EventCreate): EventRec {
+  ensureSeed();
+  const ev: EventRec = {
+    id: crypto.randomUUID(),
+    calendarId: input.calendarId ?? defaultCalendar.id,
+    title: input.title.trim(),
+    description: input.description ?? '',
+    isAllDay: input.isAllDay,
+    version: 1,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    ...(input.taskId ? { taskId: input.taskId } : {}),
+    ...(input.startAt ? { startAt: input.startAt } : {}),
+    ...(input.endAt ? { endAt: input.endAt } : {}),
+    ...(input.startDate ? { startDate: input.startDate } : {}),
+    ...(input.endDate ? { endDate: input.endDate } : {}),
+  };
+  validateEvent(ev);
+  events.push(ev);
+  return ev;
+}
+
+/** Event (và deadline) chồng lên `[from, to]` (ngày địa phương, inclusive), sắp theo thời điểm bắt đầu. */
+function rangeItems(from: string, to: string): CalendarItem[] {
+  ensureSeed();
+  const lo = localToUtc(from, '00:00', tzName());
+  const hi = localToUtc(addDays(to, 1), '00:00', tzName());
+  const startKey = (i: CalendarItem): string => {
+    if (i.kind === 'Event')
+      return i.event.isAllDay
+        ? localToUtc(i.event.startDate ?? from, '00:00', tzName())
+        : (i.event.startAt ?? '');
+    return i.task.dueAt ?? localToUtc(i.task.dueDate ?? from, '00:00', tzName());
+  };
+  const out: CalendarItem[] = [];
+  events.forEach((e) => {
+    if (e.deletedAt) return;
+    const hit = e.isAllDay
+      ? (e.startDate ?? '') <= to && (e.endDate ?? '') >= from
+      : (e.startAt ?? '') < hi && (e.endAt ?? '') > lo;
+    if (hit) out.push({ kind: 'Event', event: pubEvent(e) });
+  });
+  const archivedProjects = new Set(projects.filter((p) => p.archivedAt).map((p) => p.id));
+  tasks.forEach((t) => {
+    if (t.deletedAt || t.archivedAt || (t.projectId && archivedProjects.has(t.projectId))) return;
+    const hit = t.dueDate
+      ? t.dueDate >= from && t.dueDate <= to
+      : !!t.dueAt && t.dueAt >= lo && t.dueAt < hi;
+    if (hit) out.push({ kind: 'Deadline', task: viewTask(t) });
+  });
+  return out.sort((a, b) => startKey(a).localeCompare(startKey(b)));
+}
+
+export function mockCalendarList(): Promise<Calendar[]> {
+  return delay(() => [{ ...defaultCalendar }]);
+}
+
+export function mockCalendarRange(from: string, to: string): Promise<CalendarItem[]> {
+  return delay(() => rangeItems(from, to));
+}
+
+export function mockEventCreate(input: EventCreate): Promise<Event> {
+  return delay(() => {
+    const ev = createEventInternal(input);
+    emit('event', [ev.id]);
+    return pubEvent(ev);
+  });
+}
+
+export function mockEventUpdate(
+  id: string,
+  patch: EventPatch,
+  baseVersion: number,
+): Promise<Event> {
+  return delay(() => {
+    const ev = liveEvent(id);
+    if (ev.version !== baseVersion) fail('CONFLICT', 'Sự kiện vừa được sửa ở nơi khác');
+    const next: EventRec = { ...ev };
+    if (patch.title !== undefined) next.title = patch.title.trim();
+    if (patch.description !== undefined) next.description = patch.description;
+    if (patch.calendarId !== undefined) next.calendarId = patch.calendarId;
+    if (patch.isAllDay !== undefined) next.isAllDay = patch.isAllDay;
+    (['startAt', 'endAt', 'startDate', 'endDate'] as const).forEach((k) => {
+      const v = patch[k];
+      if (v === undefined) return;
+      if (v === null) delete next[k];
+      else next[k] = v;
+    });
+    validateEvent(next);
+    const moved = next.startAt !== ev.startAt || next.startDate !== ev.startDate;
+    Object.assign(ev, next);
+    ev.version += 1;
+    ev.updatedAt = nowIso();
+    if (moved) recomputeReminders({ eventId: id });
+    emit('event', [id]);
+    emit('reminder');
+    return pubEvent(ev);
+  });
+}
+
+export function mockEventDelete(id: string): Promise<void> {
+  return delay(() => {
+    const ev = liveEvent(id);
+    const stamp = nowIso();
+    ev.deletedAt = stamp;
+    reminders.forEach((r) => {
+      if (r.eventId === id && r.status === 'Pending' && !r.deletedAt) r.deletedAt = stamp;
+    });
+    emit('event', [id]);
+    emit('reminder');
+  });
+}
+
+export function mockTaskScheduleBlock(
+  taskId: string,
+  startAt: string,
+  endAt: string,
+  calendarId?: string,
+): Promise<Event> {
+  return delay(() => {
+    const t = liveTask(taskId);
+    const ev = createEventInternal({
+      title: t.title,
+      isAllDay: false,
+      startAt,
+      endAt,
+      taskId,
+      ...(calendarId ? { calendarId } : {}),
+    });
+    emit('event', [ev.id]);
+    return pubEvent(ev);
+  });
+}
+
+export function mockReminderSet(input: ReminderSet): Promise<Reminder> {
+  return delay(() => {
+    if (!!input.taskId === !!input.eventId)
+      fail('VALIDATION', 'Chọn đúng một nguồn: Task hoặc Event');
+    if ((input.offsetMinutes === undefined) === (input.triggerAt === undefined))
+      fail('VALIDATION', 'Chọn đúng một: nhắc trước hoặc giờ cụ thể');
+    let triggerAt = input.triggerAt;
+    const origin = originOf(input); // cũng kiểm tra nguồn tồn tại
+    if (input.offsetMinutes !== undefined) {
+      if (!origin) return fail('VALIDATION', 'Cần đặt hạn hoặc giờ bắt đầu để nhắc trước');
+      triggerAt = minus(origin, input.offsetMinutes);
+    }
+    const r: ReminderRec = {
+      id: crypto.randomUUID(),
+      triggerAt: triggerAt ?? nowIso(),
+      status: 'Pending',
+      ...(input.taskId ? { taskId: input.taskId } : {}),
+      ...(input.eventId ? { eventId: input.eventId } : {}),
+      ...(input.offsetMinutes !== undefined ? { offsetMinutes: input.offsetMinutes } : {}),
+    };
+    reminders.push(r);
+    emit('reminder', [r.id]);
+    return pubReminder(r);
+  });
+}
+
+export function mockReminderList(taskId?: string, eventId?: string): Promise<Reminder[]> {
+  return delay(() =>
+    remindersOf({ ...(taskId ? { taskId } : {}), ...(eventId ? { eventId } : {}) }),
+  );
+}
+
+export function mockReminderDelete(id: string): Promise<void> {
+  return delay(() => {
+    if (!reminders.some((r) => r.id === id)) fail('NOT_FOUND', 'Không tìm thấy nhắc nhở');
+    reminders = reminders.filter((r) => r.id !== id);
+    emit('reminder', [id]);
+  });
+}
+
+function titleOfReminder(r: Reminder): { title: string; at: string } {
+  if (r.taskId) {
+    const t = tasks.find((x) => x.id === r.taskId);
+    return { title: t?.title ?? '', at: (t && originOfTask(t)) ?? r.triggerAt };
+  }
+  const e = events.find((x) => x.id === r.eventId);
+  return { title: e?.title ?? '', at: (e && originOfEvent(e)) ?? r.triggerAt };
+}
+
+export function mockReminderMissedList(): Promise<MissedReminder[]> {
+  return delay(() => {
+    ensureSeed();
+    return reminders
+      .filter((r) => !r.deletedAt && r.status === 'Missed')
+      .sort((a, b) => b.triggerAt.localeCompare(a.triggerAt))
+      .map((r) => {
+        const { title, at } = titleOfReminder(r);
+        return { reminder: pubReminder(r), title, dueLabelAt: at };
+      });
+  });
+}
+
+export function mockReminderDismiss(id: string): Promise<void> {
+  return delay(() => {
+    const r = reminders.find((x) => x.id === id && x.status === 'Missed');
+    if (!r) return fail('NOT_FOUND', 'Không tìm thấy nhắc nhở bị lỡ');
+    r.status = 'Dismissed';
+    emit('reminder', [id]);
+  });
+}
+
+export function mockReminderDismissAll(): Promise<void> {
+  return delay(() => {
+    reminders.forEach((r) => {
+      if (r.status === 'Missed') r.status = 'Dismissed';
+    });
+    emit('reminder');
+  });
+}
+
+/** Giả lập scheduler: nhắc nhở đến hạn → `Sent` + phát `reminder-fired`. */
+function fireReminder(id: string) {
+  const r = reminders.find((x) => x.id === id);
+  if (!r) return;
+  r.status = 'Sent';
+  r.sentAt = nowIso();
+  emit('reminder', [id]);
+  const payload: ReminderFired = {
+    reminderId: id,
+    ...(r.taskId ? { taskId: r.taskId } : {}),
+    ...(r.eventId ? { eventId: r.eventId } : {}),
+  };
+  firedListeners.forEach((l) => l(payload));
+}
+function emitNavigate(route: string) {
+  navListeners.forEach((l) => l({ route }));
+}
+if (import.meta.env.VITE_IPC_MOCK === '1' && typeof window !== 'undefined')
+  (window as unknown as { __lifehubMock?: unknown }).__lifehubMock = { fireReminder, emitNavigate };
+
+function seedCalendarDemo(t0: string) {
+  const tz = tzName();
+  const at = (d: string, hm: string) => localToUtc(d, hm, tz);
+  const mk = (
+    title: string,
+    day: number,
+    from: string,
+    to: string,
+    extra: Partial<EventCreate> = {},
+  ) =>
+    createEventInternal({
+      title,
+      isAllDay: false,
+      startAt: at(addDays(t0, day), from),
+      endAt: at(addDays(t0, day), to),
+      ...extra,
+    });
+  mk('Họp nhóm đầu ngày', 0, '09:30', '10:00');
+  const review = mk('Review thiết kế Admin UI', 1, '14:00', '15:30');
+  mk('Họp khách hàng GGStudio', 2, '10:00', '11:30');
+  createEventInternal({
+    title: 'Hội thảo sinh viên',
+    isAllDay: true,
+    startDate: addDays(t0, 3),
+    endDate: addDays(t0, 4),
+  });
+  const pay = tasks.find((t) => t.title === 'Payment API');
+  if (pay) mk('Làm: Payment API', 1, '09:00', '11:00', { taskId: pay.id });
+  const booking = tasks.find((t) => t.title === 'Booking system');
+  if (booking)
+    reminders.push({
+      id: crypto.randomUUID(),
+      taskId: booking.id,
+      offsetMinutes: 1440,
+      triggerAt: minus(originOfTask(booking) ?? nowIso(), 1440),
+      status: 'Pending',
+    });
+  reminders.push({
+    id: crypto.randomUUID(),
+    eventId: review.id,
+    offsetMinutes: 30,
+    triggerAt: minus(review.startAt ?? nowIso(), 30),
+    status: 'Pending',
+  });
+  const missed = mk('Nộp báo cáo tuần (đã qua)', -1, '16:00', '16:30');
+  const status: ReminderStatus = 'Missed';
+  reminders.push({
+    id: crypto.randomUUID(),
+    eventId: missed.id,
+    offsetMinutes: 15,
+    triggerAt: minus(missed.startAt ?? nowIso(), 15),
+    status,
   });
 }
 
@@ -1416,6 +1890,8 @@ function saveState() {
         checklists,
         inbox,
         projects,
+        events,
+        reminders,
         settings,
         keyCounter,
         previous: [...previousStatus],
@@ -1433,6 +1909,8 @@ type Stored = {
   checklists: ChecklistItem[];
   inbox: InboxRec[];
   projects: ProjectRec[];
+  events?: EventRec[];
+  reminders?: ReminderRec[];
   settings: AppSettings;
   keyCounter: number;
   previous: [string, TaskStatus][];
@@ -1456,6 +1934,8 @@ function bootstrap() {
       checklists = d.checklists;
       inbox.splice(0, inbox.length, ...d.inbox);
       projects = d.projects;
+      events = d.events ?? [];
+      reminders = d.reminders ?? [];
       settings = d.settings;
       keyCounter = d.keyCounter;
       previousStatus.clear();

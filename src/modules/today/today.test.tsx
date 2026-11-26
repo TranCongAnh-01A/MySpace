@@ -4,7 +4,13 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { Providers } from '../../app/providers';
-import { dashboardToday, projectList, settingsGet, taskSetStatus } from '../../lib/ipc/commands';
+import {
+  dashboardToday,
+  projectList,
+  reminderMissedList,
+  settingsGet,
+  taskSetStatus,
+} from '../../lib/ipc/commands';
 import type { Task, TodayView } from '../../lib/ipc/contract';
 import { msUntilMidnight, todayHeading, useMidnightRefresh } from './hooks';
 import { TodayPage } from './TodayPage';
@@ -13,6 +19,7 @@ vi.mock('../../lib/ipc/commands', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ipc/commands')>()),
   dashboardToday: vi.fn(),
   projectList: vi.fn(),
+  reminderMissedList: vi.fn(),
   settingsGet: vi.fn(),
   taskSetStatus: vi.fn(),
 }));
@@ -43,12 +50,14 @@ const view = (today: Task[]): TodayView => ({
   upcoming: [],
   activeProjects: [{ projectId: 'p1', name: 'GGStudio', done: 26, total: 40, percent: 65 }],
   recentNotes: [],
+  schedule: [],
 });
 
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(settingsGet).mockRejectedValue(new Error('chưa có settings'));
   vi.mocked(projectList).mockResolvedValue([]);
+  vi.mocked(reminderMissedList).mockResolvedValue([]);
 });
 
 describe('Today', () => {

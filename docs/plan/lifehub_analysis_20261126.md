@@ -223,11 +223,11 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [x] Dashboard/Today: thẻ số liệu, việc hôm nay, quá hạn, sắp tới, dự án; bấm widget mở bản ghi gốc; thêm nhanh.
 - **Xong khi:** dữ liệu demo GGStudio hiển thị đúng 65%; kéo thả trên Board giữ thứ tự sau khi tải lại.
 
-#### 📍 Phase C4: Calendar (v0.4)
+#### 📍 Phase C4: Calendar (v0.4) ✅
 - **Việc:**
-  - [ ] FullCalendar ngày/tuần/tháng theo theme; tạo/sửa/xoá Event; deadline hiển thị khác Event.
-  - [ ] Kéo Task vào lịch tạo time block; kéo Event đổi giờ, kéo deadline đổi `dueDate`/`dueAt`; đặt nhắc nhở; danh sách nhắc nhở bị lỡ.
-  - [ ] Thêm lịch trình vào Dashboard; xử lý event `navigate`.
+  - [x] FullCalendar ngày/tuần/tháng theo theme; tạo/sửa/xoá Event; deadline hiển thị khác Event.
+  - [x] Kéo Task vào lịch tạo time block; kéo Event đổi giờ, kéo deadline đổi `dueDate`/`dueAt`; đặt nhắc nhở; danh sách nhắc nhở bị lỡ.
+  - [x] Thêm lịch trình vào Dashboard; xử lý event `navigate`.
 - **Xong khi:** đi trọn spec 5.2 bước 4–5 (bằng mock); kéo thả cập nhật đúng loại bản ghi.
 
 #### 📍 Phase C5: Notes (v0.5)
