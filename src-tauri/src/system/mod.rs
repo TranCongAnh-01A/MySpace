@@ -1,5 +1,7 @@
 pub mod backup;
 pub mod commands;
+#[cfg(debug_assertions)]
+pub mod demo;
 pub mod export;
 pub mod shortcut;
 pub mod tray;

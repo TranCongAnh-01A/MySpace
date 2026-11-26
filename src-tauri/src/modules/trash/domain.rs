@@ -6,6 +6,7 @@ use ts_rs::TS;
 pub enum TrashKind {
     Task,
     Inbox,
+    Project,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]

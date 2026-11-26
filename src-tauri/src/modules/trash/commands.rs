@@ -34,8 +34,13 @@ pub fn trash_restore(
     let entity = match kind {
         TrashKind::Task => "task",
         TrashKind::Inbox => "inbox",
+        TrashKind::Project => "project",
     };
     emit_entity_changed(&app, entity, vec![id]);
+    if kind == TrashKind::Project {
+        // Khôi phục Project kéo theo các Task bị xoá cùng lúc.
+        emit_entity_changed(&app, "task", vec![]);
+    }
     Ok(())
 }
 
@@ -45,10 +50,11 @@ pub fn trash_empty(app: AppHandle, db: State<'_, Db>) -> AppResult<()> {
     {
         let mut conn = db.lock()?;
         let tx = conn.transaction()?;
-        application::empty(&tx)?;
+        application::empty(&tx, &SystemClock)?;
         tx.commit()?;
     }
     emit_entity_changed(&app, "task", vec![]);
     emit_entity_changed(&app, "inbox", vec![]);
+    emit_entity_changed(&app, "project", vec![]);
     Ok(())
 }

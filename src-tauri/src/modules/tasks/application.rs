@@ -61,6 +61,8 @@ pub trait TaskRepository {
     fn set_archived(&self, id: &str, archived: bool) -> AppResult<()>;
     fn soft_delete(&self, id: &str) -> AppResult<()>;
     fn existing_tag_ids(&self, ids: &[String]) -> AppResult<Vec<String>>;
+    /// Project tồn tại, chưa xoá và chưa lưu trữ (Task chỉ được gán vào Project như vậy).
+    fn project_is_active(&self, id: &str) -> AppResult<bool>;
     fn replace_tags(&self, task_id: &str, tag_ids: &[String]) -> AppResult<()>;
     fn checklist(&self, task_id: &str) -> AppResult<Vec<ChecklistItem>>;
     fn checklist_get(&self, id: &str) -> AppResult<Option<ChecklistItem>>;
@@ -107,6 +109,15 @@ fn check_tags(repo: &dyn TaskRepository, ids: &[String]) -> AppResult<Vec<String
         return Err(AppError::validation("Có tag không tồn tại"));
     }
     Ok(unique)
+}
+
+fn check_project(repo: &dyn TaskRepository, id: Option<&str>) -> AppResult<()> {
+    match id {
+        Some(p) if !repo.project_is_active(p)? => Err(AppError::validation(
+            "Project không tồn tại hoặc đã được lưu trữ",
+        )),
+        _ => Ok(()),
+    }
 }
 
 // ---------- Truy vấn ----------
@@ -193,6 +204,7 @@ pub fn create(repo: &dyn TaskRepository, ctx: &TimeCtx, input: &TaskCreate) -> A
         occurrence_date: None,
     };
     task.validate_shape(ctx)?;
+    check_project(repo, task.project_id.as_deref())?;
     let last = repo.column_last_key(task.project_id.as_deref(), status)?;
     task.sort_key = sort_key::between(last.as_deref(), None);
 
@@ -232,6 +244,7 @@ pub fn update(
         ));
     }
     let old_due_day = task.due_day(ctx);
+    let old_project = task.project_id.clone();
 
     if let Some(v) = &patch.title {
         task.title = validate_title(v)?;
@@ -286,6 +299,10 @@ pub fn update(
         None => {}
     }
     task.validate_shape(ctx)?;
+    // Chỉ kiểm tra khi đổi sang Project khác (Task đã nằm sẵn trong Project thì giữ nguyên được).
+    if task.project_id != old_project {
+        check_project(repo, task.project_id.as_deref())?;
+    }
 
     let new_due_day = task.due_day(ctx);
     if let Some(rec) = task.recurrence.clone() {

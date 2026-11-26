@@ -46,6 +46,7 @@ fn startup_maintenance(conn: &mut rusqlite::Connection, trash_retention_days: u3
         .map_err(error::AppError::from)
         .and_then(|tx| {
             search_app::reindex_if_empty(&tx)?;
+            search_app::reindex_missing_projects(&tx)?;
             let purged = trash_app::purge_expired(&tx, &SystemClock, trash_retention_days)?;
             tx.commit()?;
             Ok(purged)
@@ -164,6 +165,17 @@ pub fn run() {
             modules::areas::commands::area_update,
             modules::areas::commands::area_reorder,
             modules::areas::commands::area_delete,
+            modules::projects::commands::project_list,
+            modules::projects::commands::project_get_overview,
+            modules::projects::commands::project_create,
+            modules::projects::commands::project_update,
+            modules::projects::commands::project_reorder,
+            modules::projects::commands::project_archive,
+            modules::projects::commands::project_unarchive,
+            modules::projects::commands::project_delete,
+            modules::dashboard::commands::dashboard_today,
+            #[cfg(debug_assertions)]
+            system::demo::seed_demo_data,
             system::commands::backup_now,
             system::commands::backup_list,
             system::commands::backup_restore,

@@ -4,7 +4,10 @@ use rusqlite::Connection;
 use crate::clock::Clock;
 use crate::error::{AppError, AppResult, ErrorCode};
 use crate::modules::tasks::timectx::iso;
-use crate::modules::{inbox::infrastructure as inbox, tasks::infrastructure as tasks};
+use crate::modules::{
+    inbox::infrastructure as inbox, projects::infrastructure as projects,
+    tasks::infrastructure as tasks,
+};
 
 use super::domain::{TrashItem, TrashKind};
 
@@ -47,6 +50,15 @@ pub fn list(conn: &Connection, retention_days: u32) -> AppResult<Vec<TrashItem>>
             deleted_at,
         });
     }
+    for (id, name, deleted_at) in projects::list_deleted(conn)? {
+        items.push(TrashItem {
+            kind: TrashKind::Project,
+            id,
+            title: name,
+            purge_at: purge_at(&deleted_at, retention_days),
+            deleted_at,
+        });
+    }
     items.sort_by(|a, b| {
         b.deleted_at
             .cmp(&a.deleted_at)
@@ -59,6 +71,7 @@ pub fn restore(conn: &Connection, clock: &dyn Clock, kind: TrashKind, id: &str) 
     let restored = match kind {
         TrashKind::Task => tasks::restore(conn, id, clock)?,
         TrashKind::Inbox => inbox::restore(conn, id, clock)?,
+        TrashKind::Project => projects::restore(conn, id, clock)?,
     };
     if restored {
         Ok(())
@@ -71,7 +84,7 @@ pub fn restore(conn: &Connection, clock: &dyn Clock, kind: TrashKind, id: &str) 
 }
 
 /// Xoá hẳn mọi mục trong Trash. Trả về số mục đã xoá.
-pub fn empty(conn: &Connection) -> AppResult<usize> {
+pub fn empty(conn: &Connection, clock: &dyn Clock) -> AppResult<usize> {
     purge_ids(
         conn,
         tasks::list_deleted(conn)?
@@ -82,6 +95,11 @@ pub fn empty(conn: &Connection) -> AppResult<usize> {
             .into_iter()
             .map(|t| t.0)
             .collect(),
+        projects::list_deleted(conn)?
+            .into_iter()
+            .map(|t| t.0)
+            .collect(),
+        clock,
     )
 }
 
@@ -96,10 +114,18 @@ pub fn purge_expired(
         conn,
         tasks::deleted_before(conn, &cutoff)?,
         inbox::deleted_before(conn, &cutoff)?,
+        projects::deleted_before(conn, &cutoff)?,
+        clock,
     )
 }
 
-fn purge_ids(conn: &Connection, task_ids: Vec<String>, inbox_ids: Vec<String>) -> AppResult<usize> {
+fn purge_ids(
+    conn: &Connection,
+    task_ids: Vec<String>,
+    inbox_ids: Vec<String>,
+    project_ids: Vec<String>,
+    clock: &dyn Clock,
+) -> AppResult<usize> {
     let mut n = 0;
     // Task trước (xoá luôn mục Inbox đã chuyển thành Task đó), rồi tới Inbox.
     for id in &task_ids {
@@ -108,6 +134,11 @@ fn purge_ids(conn: &Connection, task_ids: Vec<String>, inbox_ids: Vec<String>) -
     }
     for id in &inbox_ids {
         inbox::purge(conn, id)?;
+        n += 1;
+    }
+    // Project sau cùng: Task con còn trỏ tới Project được purge trước khi xoá Project.
+    for id in &project_ids {
+        projects::purge(conn, id, clock)?;
         n += 1;
     }
     Ok(n)
@@ -296,7 +327,7 @@ mod tests {
         .unwrap();
         tasks_app::delete(&repo, &t.id).unwrap();
 
-        assert_eq!(empty(&conn).unwrap(), 1);
+        assert_eq!(empty(&conn, &c).unwrap(), 1);
         assert_eq!(count(&conn, "tasks"), 1, "Task lần sau còn nguyên");
         assert_eq!(
             count(&conn, "checklist_items"),
@@ -312,7 +343,7 @@ mod tests {
         );
         // Xoá nốt Task cuối: series cũng đi theo.
         tasks_app::delete(&repo, &next.id).unwrap();
-        empty(&conn).unwrap();
+        empty(&conn, &c).unwrap();
         assert_eq!(
             (
                 count(&conn, "tasks"),
