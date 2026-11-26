@@ -17,6 +17,11 @@ import type {
   EventCreate,
   EventPatch,
   MissedReminder,
+  Note,
+  NoteCreate,
+  NoteFilter,
+  NoteSaveResult,
+  NoteSummary,
   Reminder,
   ReminderSet,
   Project,
@@ -413,6 +418,74 @@ export function reminderDismiss(id: string): Promise<void> {
 export function reminderDismissAll(): Promise<void> {
   if (isMock) return mock.mockReminderDismissAll();
   return invoke<void>('reminder_dismiss_all');
+}
+
+// ---- v0.5: notes (hợp đồng B5 mục 2.1) ----
+
+export function noteList(filter: NoteFilter = {}): Promise<NoteSummary[]> {
+  if (isMock) return mock.mockNoteList(filter);
+  return invoke<NoteSummary[]>('note_list', { filter });
+}
+
+export function noteGet(id: string): Promise<Note> {
+  if (isMock) return mock.mockNoteGet(id);
+  return invoke<Note>('note_get', { id });
+}
+
+export function noteCreate(input: NoteCreate): Promise<Note> {
+  if (isMock) return mock.mockNoteCreate(input);
+  return invoke<Note>('note_create', { input });
+}
+
+/** `contentJson` là chuỗi JSON. Lệch `baseVersion` → `CONFLICT`. */
+export function noteSave(
+  id: string,
+  title: string,
+  contentJson: string,
+  baseVersion: number,
+): Promise<NoteSaveResult> {
+  if (isMock) return mock.mockNoteSave(id, title, contentJson, baseVersion);
+  return invoke<NoteSaveResult>('note_save', { id, title, contentJson, baseVersion });
+}
+
+/** Ba trạng thái: bỏ qua = giữ nguyên, `null` = gỡ, chuỗi = đặt. */
+export function noteMove(
+  id: string,
+  target: { projectId?: string | null; parentNoteId?: string | null },
+): Promise<Note> {
+  if (isMock) return mock.mockNoteMove(id, target.projectId, target.parentNoteId);
+  return invoke<Note>('note_move', { id, ...target });
+}
+
+export function noteDelete(id: string): Promise<void> {
+  if (isMock) return mock.mockNoteDelete(id);
+  return invoke<void>('note_delete', { id });
+}
+
+export function noteLinkTask(noteId: string, taskId: string): Promise<void> {
+  if (isMock) return mock.mockNoteLinkTask(noteId, taskId);
+  return invoke<void>('note_link_task', { noteId, taskId });
+}
+
+export function noteUnlinkTask(noteId: string, taskId: string): Promise<void> {
+  if (isMock) return mock.mockNoteUnlinkTask(noteId, taskId);
+  return invoke<void>('note_unlink_task', { noteId, taskId });
+}
+
+export function noteSetTags(noteId: string, tagIds: string[]): Promise<Note> {
+  if (isMock) return mock.mockNoteSetTags(noteId, tagIds);
+  return invoke<Note>('note_set_tags', { noteId, tagIds });
+}
+
+export function inboxConvertToNote(id: string, note: NoteCreate): Promise<Note> {
+  if (isMock) return mock.mockInboxConvertToNote(id, note);
+  return invoke<Note>('inbox_convert_to_note', { id, note });
+}
+
+/** Báo core: đã lưu xong, được phép thoát (trả lời `app-will-quit`). */
+export function appQuitReady(): Promise<void> {
+  if (isMock) return Promise.resolve();
+  return invoke<void>('app_quit_ready');
 }
 
 /** Chỉ có ở bản debug. Đã có dữ liệu mẫu → `CONFLICT`. */

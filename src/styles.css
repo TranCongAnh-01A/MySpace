@@ -2,6 +2,7 @@
 @import '@fontsource-variable/inter';
 @import './styles/tokens.css';
 @import './styles/fullcalendar.css';
+@import './styles/notes.css';
 
 html,
 body,

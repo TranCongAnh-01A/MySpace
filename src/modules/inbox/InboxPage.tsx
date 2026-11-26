@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InboxIcon, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ import { useT } from '@/lib/i18n';
 import {
   errorCode,
   errorMessage,
+  inboxConvertToNote,
   inboxConvertToTask,
   inboxDelete,
   inboxList,
@@ -61,10 +62,12 @@ function InboxRow({
   item,
   highlighted,
   onConvert,
+  onConvertNote,
 }: {
   item: InboxItem;
   highlighted: boolean;
   onConvert: (item: InboxItem) => void;
+  onConvertNote: (item: InboxItem) => void;
 }) {
   const t = useT();
   const qc = useQueryClient();
@@ -116,6 +119,7 @@ function InboxRow({
   const menuItems = (Item: typeof DropdownMenuItem | typeof ContextMenuItem) => (
     <>
       {!processed && <Item onSelect={() => onConvert(item)}>{t('inbox.convert')}</Item>}
+      {!processed && <Item onSelect={() => onConvertNote(item)}>{t('inbox.convertNote')}</Item>}
       {!processed && <Item onSelect={startEdit}>{t('inbox.edit')}</Item>}
       {link && <Item onSelect={copyLink}>{t('inbox.copyLink')}</Item>}
       <Item onSelect={() => remove.mutate()}>{t('inbox.deleteItem')}</Item>
@@ -189,7 +193,11 @@ function InboxRow({
               )}
             </p>
           </div>
-          {processed && item.convertedTaskId ? (
+          {processed && item.convertedNoteId ? (
+            <Button asChild variant="secondary" size="sm">
+              <Link to={`/notes/${item.convertedNoteId}`}>{t('inbox.openNote')}</Link>
+            </Button>
+          ) : processed && item.convertedTaskId ? (
             <Button asChild variant="secondary" size="sm">
               <Link to={`/tasks/${item.convertedTaskId}`}>{t('inbox.openTask')}</Link>
             </Button>
@@ -229,6 +237,19 @@ export function InboxPage() {
     queryFn: () => inboxList(status),
   });
   const create = useCreateInbox(() => setText(''));
+  const navigate = useNavigate();
+  const convertNote = useMutation({
+    mutationFn: (id: string) => inboxConvertToNote(id, {}),
+    onSuccess: (note) => void navigate(`/notes/${note.id}`),
+    onError: (e) => {
+      if (errorCode(e) === 'CONFLICT') toast.error(t('inbox.alreadyProcessed'));
+      else toast.error(t('common.error'), { description: errorMessage(e) });
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['inbox'] });
+      void qc.invalidateQueries({ queryKey: ['notes'] });
+    },
+  });
 
   const convert = useMutation({
     mutationFn: (v: { id: string; input: TaskCreate }) => inboxConvertToTask(v.id, v.input),
@@ -291,6 +312,7 @@ export function InboxPage() {
             item={item}
             highlighted={item.id === highlightId}
             onConvert={setConvertItem}
+            onConvertNote={(i) => convertNote.mutate(i.id)}
           />
         ))}
       </ul>

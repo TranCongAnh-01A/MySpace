@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useT, type TKey } from '@/lib/i18n';
 import { errorCode, errorMessage } from '@/lib/ipc/commands';
 import type { Project } from '@/lib/ipc/contract';
+import { ProjectNotesTab } from '@/modules/notes/ProjectNotesTab';
 import { TaskDetailPanel } from '@/modules/tasks/TaskDetailPanel';
 import { TasksWorkspace } from '@/modules/tasks/TasksPage';
 import { useAreas } from '@/modules/tasks/hooks';
@@ -16,7 +17,7 @@ import { ProjectIcon } from './icons';
 import { ProjectOverviewTab } from './ProjectOverviewTab';
 import { ProjectSettingsTab } from './ProjectSettingsTab';
 
-export const PROJECT_TABS = ['overview', 'tasks', 'board', 'settings'] as const;
+export const PROJECT_TABS = ['overview', 'tasks', 'board', 'notes', 'settings'] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 const isTab = (v: string | undefined): v is ProjectTab => PROJECT_TABS.some((x) => x === v);
 
@@ -169,6 +170,9 @@ export function ProjectPage() {
               onClose={() => setTask(undefined)}
               heading={<h2 className="text-lg font-semibold">{t('proj.tab.board')}</h2>}
             />
+          </TabsContent>
+          <TabsContent value="notes">
+            <ProjectNotesTab projectId={project.id} />
           </TabsContent>
           <TabsContent value="settings">
             <ProjectSettingsTab project={project} />

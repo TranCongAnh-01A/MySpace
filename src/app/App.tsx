@@ -12,6 +12,7 @@ import { useAppShortcuts } from './shortcuts';
 import { Sidebar } from './Sidebar';
 import { TitleBar } from './TitleBar';
 import { MissedRemindersDialog } from '@/modules/reminders/MissedRemindersDialog';
+import { useAppWillQuit } from './useAppWillQuit';
 import { useCoreEvents } from './useCoreEvents';
 import { useEntityChangedInvalidation } from './useEntityChangedInvalidation';
 
@@ -19,6 +20,7 @@ function Shell() {
   useEntityChangedInvalidation();
   useAppShortcuts();
   useCoreEvents();
+  useAppWillQuit();
   const { data } = useSettings();
   useTheme(data?.theme);
   const t = useT(); // đồng thời cache ngôn ngữ + <html lang>

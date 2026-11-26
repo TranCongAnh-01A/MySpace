@@ -34,6 +34,7 @@ export function TrashPage() {
     void qc.invalidateQueries({ queryKey: ['trash'] });
     void qc.invalidateQueries({ queryKey: ['tasks'] });
     void qc.invalidateQueries({ queryKey: ['inbox'] });
+    void qc.invalidateQueries({ queryKey: ['notes'] });
     void qc.invalidateQueries({ queryKey: ['projects'] });
     void qc.invalidateQueries({ queryKey: ['project'] });
     void qc.invalidateQueries({ queryKey: ['today'] });

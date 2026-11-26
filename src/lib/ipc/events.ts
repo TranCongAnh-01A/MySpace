@@ -21,3 +21,24 @@ export async function onReminderFired(handler: (e: ReminderFired) => void): Prom
   if (isMock) return subscribeMockReminderFired(handler);
   return listenEvent<ReminderFired>('reminder-fired', handler);
 }
+
+const mockQuitListeners = new Set<() => void>();
+/** Mock: cho thử `app-will-quit` bằng `window.__lifehubMock.fireWillQuit()`. */
+export function fireMockWillQuit() {
+  mockQuitListeners.forEach((l) => l());
+}
+if (isMock && typeof window !== 'undefined') {
+  const w = window as unknown as { __lifehubMock?: Record<string, unknown> };
+  w.__lifehubMock = { ...w.__lifehubMock, fireWillQuit: fireMockWillQuit };
+}
+
+/** Core sắp thoát hẳn: lưu mọi thứ đang dở rồi gọi `appQuitReady`. */
+export async function onAppWillQuit(handler: () => void): Promise<UnlistenFn> {
+  if (isMock) {
+    mockQuitListeners.add(handler);
+    return () => {
+      mockQuitListeners.delete(handler);
+    };
+  }
+  return listenEvent<null>('app-will-quit', () => handler());
+}
