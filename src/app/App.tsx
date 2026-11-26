@@ -3,6 +3,8 @@ import { Toaster } from '@/components/ui/sonner';
 import { useTheme } from '@/lib/theme/theme';
 import { useSettings } from '@/modules/settings/hooks';
 import { useT } from '@/lib/i18n';
+import { CommandPalette } from './command-palette/CommandPalette';
+import { GlobalCreateTask } from './GlobalCreateTask';
 import { Providers } from './providers';
 import { QuickAddDialog } from './QuickAddDialog';
 import { AppRoutes } from './router';
@@ -28,11 +30,13 @@ function Shell() {
       <TitleBar />
       <div className="flex min-h-0 flex-1">
         <Sidebar />
-        <main id="main" tabIndex={-1} className="min-w-0 flex-1 overflow-auto p-6 outline-none">
+        <main id="main" tabIndex={-1} className="min-w-0 flex-1 overflow-hidden outline-none">
           <AppRoutes />
         </main>
       </div>
       <QuickAddDialog />
+      <GlobalCreateTask />
+      <CommandPalette />
       <Toaster />
     </div>
   );

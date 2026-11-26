@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { appQuit } from '@/lib/ipc/commands';
+import { useUiStore } from './ui-store';
 
 function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -8,8 +9,8 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 /**
- * Phím tắt trong app (spec 4.6): Ctrl+2 Inbox, Ctrl+, Settings, Ctrl+Q thoát.
- * Ctrl+1/3/4/5 chưa gán (module chưa có). Không bắt phím khi đang gõ, trừ Ctrl+Q.
+ * Phím tắt trong app (spec 4.6): Ctrl+2 Inbox, Ctrl+3 Tasks, Ctrl+K palette, Ctrl+N tạo Task, Ctrl+, Settings, Ctrl+Q thoát.
+ * Ctrl+1/4/5 chưa gán (module chưa có). Không bắt phím khi đang gõ, trừ Ctrl+Q.
  */
 export function useAppShortcuts() {
   const navigate = useNavigate();
@@ -21,8 +22,19 @@ export function useAppShortcuts() {
         void appQuit();
         return;
       }
+      if (e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        useUiStore.getState().setPaletteOpen(true);
+        return;
+      }
       if (isTyping(e.target)) return;
-      if (e.key === '2') {
+      if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        useUiStore.getState().setCreateTaskOpen(true);
+      } else if (e.key === '3') {
+        e.preventDefault();
+        void navigate('/tasks');
+      } else if (e.key === '2') {
         e.preventDefault();
         void navigate('/inbox');
       } else if (e.key === ',') {

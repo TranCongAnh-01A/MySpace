@@ -4,8 +4,20 @@
     {
       "name": "lifehub-mock",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "set VITE_IPC_MOCK=1&& npx vite --port 1431"],
+      "runtimeArgs": [
+        "/c",
+        "set VITE_IPC_MOCK=1&& npx vite --port 1431"
+      ],
       "port": 1431
+    },
+    {
+      "name": "lifehub-mock-5000",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set VITE_IPC_MOCK=1&& set VITE_MOCK_SEED=5000&& npx vite --port 1432"
+      ],
+      "port": 1432
     }
   ]
 }

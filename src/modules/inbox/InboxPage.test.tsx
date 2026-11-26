@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { Providers } from '../../app/providers';
 import type { InboxItem } from '../../lib/ipc/bindings/InboxItem';
 import { inboxCreate, inboxList, settingsGet } from '../../lib/ipc/commands';
@@ -25,7 +26,9 @@ const item = (id: string, content: string): InboxItem => ({
 function renderPage() {
   render(
     <Providers>
-      <InboxPage />
+      <MemoryRouter>
+        <InboxPage />
+      </MemoryRouter>
     </Providers>,
   );
 }

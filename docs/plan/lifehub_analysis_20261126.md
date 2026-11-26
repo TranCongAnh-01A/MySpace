@@ -210,7 +210,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [ ] Màn hình Settings (giao diện, ngôn ngữ, phím tắt, khởi động cùng Windows, thông báo, dữ liệu/backup) và quản lý Areas. i18n vi/en.
 - **Xong khi:** chạy `VITE_IPC_MOCK=1 npm run dev` thấy đủ vỏ ứng dụng ở cả 2 theme; Vitest xanh; tab qua hết các control.
 
-#### 📍 Phase C2: Inbox, Tasks, Quick Capture, Command Palette (v0.2)
+#### 📍 Phase C2: Inbox, Tasks, Quick Capture, Command Palette (v0.2) ✅
 - **Việc:**
   - [ ] Inbox: danh sách, sửa, xoá, dialog chuyển thành Task (gán Project/Area/Tags/ngày).
   - [ ] Tasks dạng List (virtualization) và Kanban (dnd-kit, gọi `task_move`); panel chi tiết bên phải; checklist, tags, deadline ngày hoặc ngày giờ, lặp; lọc và sắp xếp; Trash.
