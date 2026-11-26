@@ -2,13 +2,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Providers } from '../../app/providers';
 import type { InboxItem } from '../../lib/ipc/bindings/InboxItem';
-import { inboxCreate, inboxList } from '../../lib/ipc/commands';
+import { inboxCreate, inboxList, settingsGet } from '../../lib/ipc/commands';
 import { InboxPage } from './InboxPage';
 
 vi.mock('../../lib/ipc/commands', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ipc/commands')>()),
   inboxList: vi.fn(),
   inboxCreate: vi.fn(),
+  settingsGet: vi.fn(),
 }));
 vi.mock('../../lib/ipc/events', () => ({
   onEntityChanged: vi.fn(() => Promise.resolve(() => {})),
@@ -30,7 +31,10 @@ function renderPage() {
 }
 
 describe('InboxPage', () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(settingsGet).mockRejectedValue(new Error('chưa có settings'));
+  });
 
   it('hiện danh sách từ core', async () => {
     vi.mocked(inboxList).mockResolvedValue([item('1', 'mua sữa'), item('2', 'gọi khách')]);

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lifehub-mock",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set VITE_IPC_MOCK=1&& npx vite --port 1431"],
+      "port": 1431
+    }
+  ]
+}

@@ -1,83 +1,139 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { errorMessage, inboxCreate, inboxList } from '../../lib/ipc/commands';
-import { onEntityChanged } from '../../lib/ipc/events';
+import { useState, type FormEvent } from 'react';
+import { InboxIcon, MoreHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { EmptyState, ErrorState } from '@/components/ui/empty-state';
+import { Input } from '@/components/ui/input';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/menus';
+import { Kbd } from '@/components/ui/kbd';
+import { LoadingBlock } from '@/components/ui/skeleton';
+import { formatDateTime } from '@/lib/format/date';
+import { useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/ipc/commands';
+import type { InboxItem } from '@/lib/ipc/bindings/InboxItem';
+import { useSettings } from '@/modules/settings/hooks';
+import { useCreateInbox, useInboxOpen } from './hooks';
 
-const QUERY_KEY = ['inbox'];
+function InboxRow({ item }: { item: InboxItem }) {
+  const t = useT();
+  const { data: settings } = useSettings();
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <li className="flex items-start gap-3 rounded-md border border-border bg-surface px-3 py-2">
+          <div className="min-w-0 flex-1">
+            <p className="break-words whitespace-pre-wrap">{item.content}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {formatDateTime(
+                item.createdAt,
+                settings?.dateFormat ?? 'DD/MM/YYYY',
+                settings?.timezone,
+              )}
+            </p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label={t('inbox.itemMenu')}>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem disabled>
+                {t('inbox.deleteItem')}
+                <span className="text-xs">{t('common.comingSoon')}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </li>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem disabled>
+          {t('inbox.deleteItem')}
+          <span className="text-xs">{t('common.comingSoon')}</span>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+}
 
-// UI thô; phiên C làm lại.
 export function InboxPage() {
-  const queryClient = useQueryClient();
+  const t = useT();
   const [text, setText] = useState('');
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: QUERY_KEY,
-    queryFn: () => inboxList(),
-  });
-
-  // Core phát entity-changed (kể cả từ cửa sổ Quick Capture) thì tải lại danh sách.
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    let disposed = false;
-    void onEntityChanged((e) => {
-      if (e.entity === 'inbox') void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-    }).then((fn) => {
-      if (disposed) fn();
-      else unlisten = fn;
-    });
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, [queryClient]);
-
-  const create = useMutation({
-    mutationFn: inboxCreate,
-    onSuccess: () => {
-      setText('');
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-    },
-  });
+  const { data: settings } = useSettings();
+  const { data, isLoading, error, refetch } = useInboxOpen();
+  const create = useCreateInbox(() => setText(''));
 
   function submit(e: FormEvent) {
     e.preventDefault();
     create.mutate(text);
   }
 
+  // Chèn <Kbd> vào giữa câu gợi ý đã dịch.
+  const [hintBefore = '', hintAfter = ''] = t('inbox.emptyHint', { shortcut: '@@' }).split('@@');
+  let body;
+  if (isLoading) body = <LoadingBlock label={t('common.loading')} />;
+  else if (error)
+    body = (
+      <ErrorState
+        title={t('common.loadError')}
+        message={errorMessage(error)}
+        retryLabel={t('common.retry')}
+        onRetry={() => void refetch()}
+      />
+    );
+  else if (!data || data.length === 0)
+    body = (
+      <EmptyState
+        icon={<InboxIcon />}
+        title={t('inbox.empty')}
+        hint={
+          <>
+            {hintBefore}
+            <Kbd>{settings?.quickCaptureShortcut ?? 'Ctrl+Shift+Space'}</Kbd>
+            {hintAfter}
+          </>
+        }
+      />
+    );
+  else
+    body = (
+      <ul className="space-y-2">
+        {data.map((item) => (
+          <InboxRow key={item.id} item={item} />
+        ))}
+      </ul>
+    );
+
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-3 text-xl font-semibold">Inbox</h1>
+      <h1 className="mb-4 text-xl font-semibold">{t('inbox.title')}</h1>
       <form onSubmit={submit} className="mb-4 flex gap-2">
-        <input
-          aria-label="Thêm vào Inbox"
+        <Input
+          aria-label={t('inbox.addLabel')}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Ghi nhanh một ý…"
-          className="flex-1 rounded bg-white/10 px-3 py-2 outline-none focus:ring-1 focus:ring-violet-400"
+          placeholder={t('inbox.addPlaceholder')}
+          aria-invalid={create.isError}
+          className="flex-1"
         />
-        <button type="submit" className="rounded bg-violet-500 px-4 py-2 hover:bg-violet-400">
-          Thêm
-        </button>
+        <Button type="submit" disabled={create.isPending}>
+          {t('common.add')}
+        </Button>
       </form>
       {create.error && (
-        <p role="alert" className="mb-2 text-red-400">
+        <p role="alert" className="mb-3 text-danger">
           {errorMessage(create.error)}
         </p>
       )}
-      {isLoading && <p>Đang tải…</p>}
-      {error && (
-        <p role="alert" className="text-red-400">
-          {errorMessage(error)}
-        </p>
-      )}
-      {data?.length === 0 && <p className="text-white/60">Inbox trống.</p>}
-      <ul className="space-y-2">
-        {data?.map((item) => (
-          <li key={item.id} className="rounded bg-white/5 px-3 py-2 whitespace-pre-wrap">
-            {item.content}
-          </li>
-        ))}
-      </ul>
+      {body}
     </div>
   );
 }

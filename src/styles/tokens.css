@@ -1,0 +1,52 @@
+/* Design token LifeHub. Dark theo spec 4.5; Light chốt ở kế hoạch C1 (đã kiểm tra tương phản). */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #15161b;
+  --sidebar: #1b1d23;
+  --surface: #23252d;
+  --primary: #a08bdf;
+  --primary-fg: #15161b;
+  --success: #63bb91;
+  --danger: #e57373;
+  --danger-fg: #15161b;
+  --warning: #eab75c;
+  --text: #f1f2f5;
+  --muted: #9598a5;
+  --border: #2e3039;
+  --focus: var(--primary);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f7f7f9;
+  --sidebar: #eeeff3;
+  --surface: #ffffff;
+  --primary: #6a52c7;
+  --primary-fg: #ffffff;
+  --success: #217a53;
+  --danger: #c53030;
+  --danger-fg: #ffffff;
+  --warning: #975a16;
+  --text: #1b1d23;
+  --muted: #5c5f6b;
+  --border: #dcdde3;
+  --focus: var(--primary);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
+  --color-warning: var(--warning);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-focus: var(--focus);
+  --font-sans: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
+}
