@@ -2,7 +2,7 @@
 
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 02:20
+**Cập nhật lần cuối:** 2026-11-26 15:00
 
 ---
 
@@ -11,7 +11,7 @@
 - **Thư mục:** `D:\04.Project_me\MySpace`
 - **Mục tiêu chính:** ứng dụng desktop Windows (`.exe`) local-first gom Inbox/Quick Capture, Tasks, Projects, Calendar, Notes, Dashboard; dự án chủ lực cho CV. Spec: [./spec/lifehub_spec_20261126.md](./spec/lifehub_spec_20261126.md)
 - **Đối tượng người dùng:** một người dùng trên Windows 10/11, không tài khoản
-- **Trạng thái hiện tại:** Phiên A xong (A1 + A2): khung Tauri 2 + React + CI, DB SQLite (migration 001), module `inbox` 4 lớp (mẫu cho phiên B), luồng Quick Capture → Inbox, khay, single-instance. Đang làm: B1 ([kế hoạch](./plan/lifehub_B1_impl_20261126.md), `feat/core`) và C1 ([kế hoạch](./plan/lifehub_C1_impl_20261126.md), `feat/ui`) song song; INDEX/PROJECT_CONTEXT chỉ phiên chính sửa cho tới khi merge v0.1. CI GitHub xanh (run #1 A1, #2 A2). Phiên chính đã đối chiếu và chạy lại lint/vitest/cargo test: xanh. Còn người dùng tự thử: menu khay "Thoát" và `Ctrl+Q`. ADR 001–008 ở [./adr/](./adr/).
+- **Trạng thái hiện tại:** **v0.1 đã merge vào `main`** (tag `v0.1.0`, chưa push): A (khung, Quick Capture → Inbox, khay, CI) + B1 (settings, đổi phím tắt, areas, backup/restore, export JSON, log) + C1 (design system Dark/Light, titlebar, sidebar, Settings 5 tab). Trên bản gộp: lint, Vitest 26/26, build, fmt, clippy, cargo test 82/82 xanh. `contract.ts` đã trỏ sang bindings ts-rs. Chưa kiểm bằng tay trên app thật: cửa sổ Tauri với core thật, autostart, `closeToTray=false`, menu khay "Thoát", `Ctrl+Q`. Bước tiếp: B2 + C2 (v0.2). ADR ở [./adr/](./adr/).
 
 ## 2. Tech Stack
 | Tầng | Công nghệ | Phiên bản | Ghi chú |
@@ -54,6 +54,7 @@ MySpace/
 | Module | Mô tả | Trạng thái |
 |---|---|---|
 | Khung + Quick Capture → Inbox | Phiên A | Xong (A1 ✅, A2 ✅) |
+| Nền tảng v0.1: Settings, Areas, Backup, design system | B1 + C1 | Xong, đã merge (v0.1.0) |
 | Inbox, Tasks, Search | v0.2 (B2 + C2) | Chưa bắt đầu |
 | Projects, Kanban, Dashboard | v0.3 (B3 + C3) | Chưa bắt đầu |
 | Calendar, Reminders | v0.4 (B4 + C4) | Chưa bắt đầu |
