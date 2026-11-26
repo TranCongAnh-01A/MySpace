@@ -48,6 +48,7 @@ pub struct Event {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub end_date: Option<String>,
+    #[ts(type = "number")]
     pub version: u64,
     pub created_at: String,
     pub updated_at: String,

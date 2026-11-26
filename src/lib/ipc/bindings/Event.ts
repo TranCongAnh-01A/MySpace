@@ -4,4 +4,4 @@ export type Event = { id: string, calendarId: string, taskId?: string, title: st
 /**
  * Tính cả ngày cuối (inclusive).
  */
-endDate?: string, version: bigint, createdAt: string, updatedAt: string, };
+endDate?: string, version: number, createdAt: string, updatedAt: string, };

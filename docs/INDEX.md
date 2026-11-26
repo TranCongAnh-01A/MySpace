@@ -3,7 +3,7 @@
 > File này là **mục lục trung tâm**, giúp AI (và người mới) nắm nhanh toàn bộ cấu trúc tài liệu của dự án.
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 21:00
+**Cập nhật lần cuối:** 2026-11-26 22:50
 
 ---
 
@@ -45,6 +45,9 @@
 | `log_20261126_2015.md` | 2026-11-26 | Nhật ký phiên B3 | [./log/log_20261126_2015.md](./log/log_20261126_2015.md) |
 | `log_20261126_2030.md` | 2026-11-26 | Nhật ký phiên C3 | [./log/log_20261126_2030.md](./log/log_20261126_2030.md) |
 | `lifehub_core-b3_explain_20261126.md` | 2026-11-26 | Giải thích core Rust B3 (projects, dashboard, dữ liệu mẫu) | [./explain/lifehub_core-b3_explain_20261126.md](./explain/lifehub_core-b3_explain_20261126.md) |
+| `log_20261126_2155.md` | 2026-11-26 | Nhật ký phiên C4 | [./log/log_20261126_2155.md](./log/log_20261126_2155.md) |
+| `log_20261126_2230.md` | 2026-11-26 | Nhật ký phiên B4 | [./log/log_20261126_2230.md](./log/log_20261126_2230.md) |
+| `lifehub_core-b4_explain_20261126.md` | 2026-11-26 | Giải thích core Rust B4 (calendar, reminders, scheduler, thông báo) | [./explain/lifehub_core-b4_explain_20261126.md](./explain/lifehub_core-b4_explain_20261126.md) |
 
 ## 3b. Quyết định kiến trúc (docs/adr/, tên cố định)
 | File | Quyết định | Link |
@@ -69,6 +72,7 @@ docs/
 │   ├── lifehub_core-b1_explain_20261126.md
 │   ├── lifehub_core-b2_explain_20261126.md
 │   ├── lifehub_core-b3_explain_20261126.md
+│   ├── lifehub_core-b4_explain_20261126.md
 │   └── TEMPLATE_explain.md
 ├── local_instructions/
 │   └── scripts/            # Script tiện ích riêng cho dự án
