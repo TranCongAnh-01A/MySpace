@@ -202,7 +202,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
 ### Phiên C: Giao diện
 > Đầu mỗi phase: `git merge main`, đọc kế hoạch triển khai của phase đó. Gọi command qua `src/lib/ipc/commands.ts` đúng theo hợp đồng ở mục 3. Command nào core chưa có thì dùng `mock.ts`, bật bằng `VITE_IPC_MOCK=1`. Mỗi màn hình có đủ empty, loading, error state; dùng được hoàn toàn bằng bàn phím; component test bằng Vitest.
 
-#### 📍 Phase C1: Design system + vỏ ứng dụng (v0.1)
+#### 📍 Phase C1: Design system + vỏ ứng dụng (v0.1) ✅
 - **Việc:**
   - [ ] Token màu Dark/Light theo spec 4.5, theme theo Windows, font Inter đóng gói kèm.
   - [ ] Component nền (Button, Input, Dialog, Dropdown, Context Menu, Tabs, Card, Toast, Badge, Skeleton, Empty State, Date Picker).

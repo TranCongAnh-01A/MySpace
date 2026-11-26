@@ -1,8 +1,10 @@
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+import { isMock, listenEvent } from '../tauri';
 import type { EntityChanged } from './bindings/EntityChanged';
+import { subscribeMockEvents } from './mock';
 
-/** Nghe `entity-changed` do core phát. Trả về hàm huỷ đăng ký. */
+/** Nghe `entity-changed` do core phát (ở chế độ mock: do mock.ts phát). Trả về hàm huỷ đăng ký. */
 export async function onEntityChanged(handler: (e: EntityChanged) => void): Promise<UnlistenFn> {
-  if (import.meta.env.VITE_IPC_MOCK === '1') return () => {};
-  return listen<EntityChanged>('entity-changed', (event) => handler(event.payload));
+  if (isMock) return subscribeMockEvents(handler);
+  return listenEvent<EntityChanged>('entity-changed', handler);
 }
