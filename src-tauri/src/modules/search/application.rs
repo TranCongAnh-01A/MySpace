@@ -64,6 +64,7 @@ pub fn search(
                   WHEN 'Task' THEN (SELECT title FROM tasks WHERE id = m.entity_id)
                   WHEN 'Project' THEN (SELECT name FROM projects WHERE id = m.entity_id)
                   WHEN 'Inbox' THEN (SELECT content FROM inbox_items WHERE id = m.entity_id)
+                  WHEN 'Note' THEN (SELECT title FROM notes WHERE id = m.entity_id)
                   END, search_index.title),
                 snippet(search_index, 1, '', '', '…', 12)
          FROM search_index JOIN search_map m ON m.fts_rowid = search_index.rowid
@@ -123,6 +124,23 @@ pub fn reindex_missing_projects(conn: &Connection) -> AppResult<()> {
         .collect::<Result<_, _>>()?;
     for (id, name, body) in missing {
         infrastructure::index(conn, SearchKind::Project, &id, &name, &body)?;
+    }
+    Ok(())
+}
+
+/// Note chưa có trong chỉ mục (chỉ mục bị dựng lại hoặc Note nhập từ nơi khác) thì index nốt.
+pub fn reindex_missing_notes(conn: &Connection) -> AppResult<()> {
+    let missing: Vec<(String, String, String)> = conn
+        .prepare(
+            "SELECT id, title, search_text FROM notes
+             WHERE deleted_at IS NULL
+               AND NOT EXISTS (SELECT 1 FROM search_map m
+                               WHERE m.kind = 'Note' AND m.entity_id = notes.id)",
+        )?
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+        .collect::<Result<_, _>>()?;
+    for (id, title, body) in missing {
+        infrastructure::index(conn, SearchKind::Note, &id, &title, &body)?;
     }
     Ok(())
 }

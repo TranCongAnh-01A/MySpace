@@ -427,6 +427,10 @@ impl TaskRepository for SqliteTaskRepository<'_> {
         Ok(())
     }
 
+    fn note_ids(&self, task_id: &str) -> AppResult<Vec<String>> {
+        crate::modules::notes::infrastructure::note_ids_of_task(self.conn, task_id)
+    }
+
     fn checklist(&self, task_id: &str) -> AppResult<Vec<ChecklistItem>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, task_id, content, is_done, sort_key FROM checklist_items

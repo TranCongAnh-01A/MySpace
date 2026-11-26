@@ -3,7 +3,8 @@ use crate::ids;
 use crate::sort_key;
 
 use super::domain::{
-    ChildMode, Project, ProjectCreate, ProjectOverview, ProjectPatch, ProjectProgress, StatusCounts,
+    ChildMode, NoteSummary, Project, ProjectCreate, ProjectOverview, ProjectPatch, ProjectProgress,
+    StatusCounts,
 };
 
 /// Cổng ra của module Projects.
@@ -25,6 +26,8 @@ pub trait ProjectRepository {
     fn area_exists(&self, id: &str) -> AppResult<bool>;
     /// Đếm Task chưa lưu trữ, chưa xoá theo trạng thái.
     fn counts(&self, id: &str) -> AppResult<StatusCounts>;
+    /// 5 Note cập nhật gần nhất của Project (không lấy Note đã xoá).
+    fn recent_notes(&self, id: &str) -> AppResult<Vec<NoteSummary>>;
     /// Lưu trữ Project (+ Task con theo `mode`) với cùng một mốc thời gian.
     fn archive(&self, id: &str, mode: ChildMode) -> AppResult<()>;
     /// Bỏ lưu trữ Project và các Task bị lưu trữ cùng mốc với nó.
@@ -64,7 +67,7 @@ pub fn get_overview(repo: &dyn ProjectRepository, id: &str) -> AppResult<Project
         progress: ProjectProgress::new(&project, counts.done, counts.total()),
         counts,
         project,
-        recent_notes: Vec::new(), // Note có từ v0.5
+        recent_notes: repo.recent_notes(id)?,
     })
 }
 

@@ -13,6 +13,9 @@ use crate::modules::areas::infrastructure::SqliteAreaRepository;
 use crate::modules::emit_entity_changed;
 use crate::modules::inbox::application as inbox_app;
 use crate::modules::inbox::infrastructure::SqliteInboxRepository;
+use crate::modules::notes::application as notes_app;
+use crate::modules::notes::domain::NoteCreate;
+use crate::modules::notes::infrastructure::SqliteNoteRepository;
 use crate::modules::projects::application as projects_app;
 use crate::modules::projects::domain::{Project, ProjectCreate, ProjectStatus};
 use crate::modules::projects::infrastructure::{self as projects_infra, SqliteProjectRepository};
@@ -212,6 +215,109 @@ fn make_project(
     projects_app::create(repo, &clock.now_iso(), &input)
 }
 
+fn text(t: &str) -> serde_json::Value {
+    serde_json::json!({ "type": "text", "text": t })
+}
+
+fn para(t: &str) -> serde_json::Value {
+    serde_json::json!({ "type": "paragraph", "content": [text(t)] })
+}
+
+fn heading(level: u8, t: &str) -> serde_json::Value {
+    serde_json::json!({ "type": "heading", "attrs": { "level": level }, "content": [text(t)] })
+}
+
+fn checklist(items: &[(&str, bool)]) -> serde_json::Value {
+    let rows: Vec<_> = items
+        .iter()
+        .map(|(t, done)| {
+            serde_json::json!({ "type": "taskItem", "attrs": { "checked": done }, "content": [para(t)] })
+        })
+        .collect();
+    serde_json::json!({ "type": "taskList", "content": rows })
+}
+
+fn code(language: &str, body: &str) -> serde_json::Value {
+    serde_json::json!({ "type": "codeBlock", "attrs": { "language": language }, "content": [text(body)] })
+}
+
+fn doc(content: Vec<serde_json::Value>) -> String {
+    serde_json::json!({ "type": "doc", "content": content }).to_string()
+}
+
+/// 3 Note cho GGStudio; Note "API thanh toán" liên kết với Task "Payment API".
+fn seed_notes(
+    conn: &Connection,
+    clock: &dyn Clock,
+    project_id: &str,
+    payment_task: Option<&str>,
+) -> AppResult<()> {
+    let repo = SqliteNoteRepository::new(conn, clock);
+    let now = clock.now_iso();
+    let rows = [
+        (
+            "Yêu cầu kỹ thuật Booking",
+            doc(vec![
+                heading(1, "Yêu cầu kỹ thuật Booking"),
+                para("Đặt lịch theo khung giờ 30 phút, chống đặt trùng ở tầng cơ sở dữ liệu."),
+                heading(2, "Việc cần làm"),
+                checklist(&[
+                    ("Thiết kế bảng booking_slots", true),
+                    ("API giữ chỗ tạm 10 phút", false),
+                    ("Gửi email xác nhận", false),
+                ]),
+                code(
+                    "sql",
+                    "CREATE UNIQUE INDEX ux_slot ON booking_slots (provider_id, starts_at);",
+                ),
+            ]),
+            None,
+        ),
+        (
+            "Ghi chú họp khách hàng",
+            doc(vec![
+                heading(2, "Họp ngày 20/11"),
+                para("Khách muốn thêm bộ lọc theo game và mức giá."),
+                checklist(&[
+                    ("Gửi báo giá bản cập nhật", false),
+                    ("Xác nhận lịch demo tuần sau", true),
+                ]),
+            ]),
+            None,
+        ),
+        (
+            "API thanh toán",
+            doc(vec![
+                heading(1, "API thanh toán"),
+                para("Dùng Stripe Connect, người bán nhận tiền sau khi đơn hoàn tất."),
+                checklist(&[
+                    ("Tạo tài khoản Connect cho người bán", false),
+                    ("Webhook xác nhận thanh toán", false),
+                ]),
+                code(
+                    "json",
+                    "{ \"event\": \"payment.succeeded\", \"orderId\": \"...\" }",
+                ),
+            ]),
+            payment_task,
+        ),
+    ];
+    for (title, content, task_id) in rows {
+        notes_app::create(
+            &repo,
+            &now,
+            &NoteCreate {
+                title: Some(title.into()),
+                content_json: Some(content),
+                project_id: Some(project_id.into()),
+                task_id: task_id.map(Into::into),
+                ..Default::default()
+            },
+        )?;
+    }
+    Ok(())
+}
+
 /// Tạo dữ liệu mẫu trong `conn` (gọi trong một transaction).
 /// Đã có Project tên bắt đầu bằng "GGStudio" thì trả `CONFLICT`.
 pub fn seed(conn: &Connection, clock: &dyn Clock, ctx: &TimeCtx) -> AppResult<()> {
@@ -275,8 +381,9 @@ pub fn seed(conn: &Connection, clock: &dyn Clock, ctx: &TimeCtx) -> AppResult<()
             },
         )?;
     }
+    let mut payment_task: Option<String> = None;
     for (title, status, priority, offset, tag_names) in OPEN_ROWS {
-        tasks_app::create(
+        let task = tasks_app::create(
             &tasks,
             ctx,
             &TaskCreate {
@@ -289,7 +396,11 @@ pub fn seed(conn: &Connection, clock: &dyn Clock, ctx: &TimeCtx) -> AppResult<()
                 ..Default::default()
             },
         )?;
+        if title == "Payment API" {
+            payment_task = Some(task.id);
+        }
     }
+    seed_notes(conn, clock, &gg.id, payment_task.as_deref())?;
 
     let thesis = make_project(
         &projects,
@@ -343,7 +454,7 @@ pub fn seed_demo_data(
         seed(&tx, &SystemClock, &ctx)?;
         tx.commit()?;
     }
-    for entity in ["area", "tag", "project", "task", "inbox"] {
+    for entity in ["area", "tag", "project", "task", "inbox", "note"] {
         emit_entity_changed(&app, entity, vec![]);
     }
     Ok(())

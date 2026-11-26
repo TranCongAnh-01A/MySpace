@@ -193,7 +193,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [ ] `dashboard_today` thêm `schedule`.
 - **Xong khi:** test scheduler với đồng hồ giả lập (đúng giờ, không trùng, xử lý lần bị lỡ). Trên bản `.exe` đã cài, thông báo hiện khi app đang ở khay.
 
-#### 📍 Phase B5: Notes (v0.5)
+#### 📍 Phase B5: Notes (v0.5) ✅
 - **Việc:**
   - [ ] Notes: CRUD, `note_save` với `baseVersion`, trích `search_text` từ JSON của Tiptap, liên kết Task, Tags, Trash.
   - [ ] `inbox_convert_to_note`; search thêm Note; `dashboard_today` thêm `recentNotes`.

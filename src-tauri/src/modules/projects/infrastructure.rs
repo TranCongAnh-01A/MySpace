@@ -4,11 +4,12 @@ use crate::clock::Clock;
 use crate::db::changelog::{self, ChangeOp};
 use crate::error::{AppError, AppResult};
 use crate::ids::DEFAULT_WORKSPACE_ID;
+use crate::modules::notes::infrastructure as notes;
 use crate::modules::search::infrastructure::{self as search, SearchKind};
 use crate::modules::tasks::infrastructure as tasks;
 
 use super::application::ProjectRepository;
-use super::domain::{ChildMode, Project, ProjectStatus, StatusCounts};
+use super::domain::{ChildMode, NoteSummary, Project, ProjectStatus, StatusCounts};
 
 pub struct SqliteProjectRepository<'a> {
     conn: &'a Connection,
@@ -246,6 +247,10 @@ impl ProjectRepository for SqliteProjectRepository<'_> {
         Ok(counts)
     }
 
+    fn recent_notes(&self, id: &str) -> AppResult<Vec<NoteSummary>> {
+        notes::recent(self.conn, Some(id))
+    }
+
     fn archive(&self, id: &str, mode: ChildMode) -> AppResult<()> {
         let now = self.clock.now_iso();
         let area: Option<String> =
@@ -326,6 +331,7 @@ impl ProjectRepository for SqliteProjectRepository<'_> {
                     search::remove(self.conn, SearchKind::Task, task_id)?;
                 }
                 self.record_tasks(&ids, ChangeOp::Delete)?;
+                notes::soft_delete_for_project(self.conn, id, &now, self.clock)?;
             }
             ChildMode::Detach => self.detach_children(id, area.as_deref(), &now)?,
         }
@@ -391,6 +397,7 @@ pub fn restore(conn: &Connection, id: &str, clock: &dyn Clock) -> AppResult<bool
          WHERE id = ?1",
         params![id, now],
     )?;
+    notes::restore_for_project(conn, id, &stamp, &now, clock)?;
     let (name, description): (String, String) = conn.query_row(
         "SELECT name, description FROM projects WHERE id = ?1",
         [id],
@@ -410,6 +417,7 @@ pub fn purge(conn: &Connection, id: &str, clock: &dyn Clock) -> AppResult<()> {
     for task_id in &task_ids {
         tasks::purge(conn, task_id)?;
     }
+    notes::purge_deleted_of_project(conn, id)?;
     detach_notes(conn, id, &clock.now_iso())?;
     search::remove(conn, SearchKind::Project, id)?;
     // milestones xoá theo ON DELETE CASCADE.

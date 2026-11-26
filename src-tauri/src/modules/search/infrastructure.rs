@@ -1,5 +1,4 @@
 //! Ghi/xoá chỉ mục FTS5 qua `search_map` (không quét bảng, không dùng trigger).
-// Project/Note chưa có module gọi (B3, B5).
 #![allow(dead_code)]
 
 use rusqlite::{params, Connection, OptionalExtension};

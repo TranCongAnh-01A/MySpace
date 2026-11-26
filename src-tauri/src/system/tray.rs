@@ -10,7 +10,7 @@ use crate::modules::settings::commands::SettingsState;
 use crate::modules::tasks::timectx::TimeCtx;
 use crate::reminders::scheduler::SchedulerHandle;
 
-use super::windows::{navigate, show_main, show_quick_capture};
+use super::windows::{navigate, request_exit, show_main, show_quick_capture};
 
 const TRAY_ID: &str = "main";
 const TASK_PREFIX: &str = "task:";
@@ -129,7 +129,7 @@ pub fn init(app: &App) -> tauri::Result<()> {
                     h.set_paused(!h.is_paused());
                 }
             }
-            "quit" => app.exit(0),
+            "quit" => request_exit(app),
             other => {
                 if let Some(id) = other.strip_prefix(TASK_PREFIX) {
                     navigate(app, &format!("/tasks/{id}"));

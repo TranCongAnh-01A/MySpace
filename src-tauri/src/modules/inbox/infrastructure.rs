@@ -101,6 +101,18 @@ impl InboxRepository for SqliteInboxRepository<'_> {
         self.record(id, ChangeOp::Update)
     }
 
+    fn mark_processed_note(&self, id: &str, note_id: &str) -> AppResult<()> {
+        let now = self.clock.now_iso();
+        self.conn.execute(
+            "UPDATE inbox_items SET status = 'Processed', converted_note_id = ?2,
+                processed_at = ?3, version = version + 1, updated_at = ?3
+             WHERE id = ?1 AND deleted_at IS NULL",
+            params![id, note_id, now],
+        )?;
+        search::remove(self.conn, SearchKind::Inbox, id)?;
+        self.record(id, ChangeOp::Update)
+    }
+
     fn list(&self, status: Option<InboxStatus>) -> AppResult<Vec<InboxItem>> {
         let sql = format!(
             "SELECT {COLUMNS} FROM inbox_items
