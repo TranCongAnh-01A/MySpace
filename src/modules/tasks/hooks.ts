@@ -22,10 +22,19 @@ import type {
   TaskFilter,
   TaskStatus,
   TaskStatusResult,
+  TodayView,
 } from '@/lib/ipc/contract';
 import { useLanguage } from '@/lib/i18n';
 import { useSettings } from '@/modules/settings/hooks';
 import { dayLabel, dueDay, type DateCtx } from './dates';
+
+/** Task đổi thì Today và tiến độ Project cũng đổi. */
+export function invalidateTaskData(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: ['tasks'] });
+  void qc.invalidateQueries({ queryKey: ['task'] });
+  void qc.invalidateQueries({ queryKey: ['today'] });
+  void qc.invalidateQueries({ queryKey: ['project'] });
+}
 
 export const tasksKey = (filter: TaskFilter) => ['tasks', filter] as const;
 
@@ -75,14 +84,29 @@ export function useSetStatus() {
     mutationFn: (v: { id: string; status: TaskStatus }) => taskSetStatus(v.id, v.status),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: ['tasks'] });
+      await qc.cancelQueries({ queryKey: ['today'] });
       const previous = qc.getQueriesData<Task[]>({ queryKey: ['tasks'] });
+      const previousToday = qc.getQueriesData<TodayView>({ queryKey: ['today'] });
       qc.setQueriesData<Task[]>({ queryKey: ['tasks'] }, (old) =>
         old?.map((x) => (x.id === v.id ? { ...x, status: v.status } : x)),
       );
-      return { previous };
+      // Today chỉ liệt kê việc chưa Done: đánh Done thì bỏ ngay khỏi các widget (optimistic).
+      if (v.status === 'Done')
+        qc.setQueriesData<TodayView>({ queryKey: ['today'] }, (old) =>
+          old
+            ? {
+                ...old,
+                today: old.today.filter((x) => x.id !== v.id),
+                overdue: old.overdue.filter((x) => x.id !== v.id),
+                upcoming: old.upcoming.filter((x) => x.id !== v.id),
+              }
+            : old,
+        );
+      return { previous, previousToday };
     },
     onError: (e, _v, c) => {
       c?.previous.forEach(([key, data]) => qc.setQueryData(key, data));
+      c?.previousToday.forEach(([key, data]) => qc.setQueryData(key, data));
       onError(e);
     },
     onSuccess: (res: TaskStatusResult) => {
@@ -91,10 +115,7 @@ export function useSetStatus() {
         toast.success(t('tasks.nextCreated', { date: day ? dayLabel(day, ctx, t) : '' }));
       }
     },
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: ['tasks'] });
-      void qc.invalidateQueries({ queryKey: ['task'] });
-    },
+    onSettled: () => invalidateTaskData(qc),
   });
 }
 
@@ -125,10 +146,7 @@ export function useMoveTask() {
       c?.previous.forEach(([key, data]) => qc.setQueryData(key, data));
       onError(e);
     },
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: ['tasks'] });
-      void qc.invalidateQueries({ queryKey: ['task'] });
-    },
+    onSettled: () => invalidateTaskData(qc),
   });
 }
 
@@ -146,7 +164,7 @@ export function useDeleteTask() {
           label: t('tasks.undo'),
           onClick: () => {
             void trashRestore('Task', id)
-              .then(() => qc.invalidateQueries({ queryKey: ['tasks'] }))
+              .then(() => invalidateTaskData(qc))
               .catch(onError);
           },
         },
@@ -154,7 +172,7 @@ export function useDeleteTask() {
     },
     onError,
     onSettled: () => {
-      void qc.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTaskData(qc);
       void qc.invalidateQueries({ queryKey: ['trash'] });
     },
   });
@@ -171,7 +189,7 @@ export function useArchiveTask() {
       if (v.archive) toast(t('tasks.archived'));
     },
     onError,
-    onSettled: () => void qc.invalidateQueries({ queryKey: ['tasks'] }),
+    onSettled: () => invalidateTaskData(qc),
   });
 }
 
@@ -182,7 +200,7 @@ export function useCreateTask(onCreated?: (task: Task) => void) {
     mutationFn: (input: TaskCreate) => taskCreate(input),
     onSuccess: (task) => {
       toast.success(t('tasks.createdToast'));
-      void qc.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTaskData(qc);
       onCreated?.(task);
     },
   });

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CheckSquare, Columns3, List, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import {
   type TasksQuery,
   type TasksView,
 } from './filters';
+import { useProjects } from '@/modules/projects/hooks';
 import { useAreas, useDateCtx, useTags, useTasks } from './hooks';
 import { TaskBoard } from './TaskBoard';
 import { TaskDetailPanel } from './TaskDetailPanel';
@@ -70,35 +72,58 @@ function FilterSelect({
   );
 }
 
-export function TasksPage() {
+type WorkspaceProps = {
+  /** Có `projectId`: chỉ hiện Task của dự án đó, ẩn bộ lọc Area, Task mới thuộc dự án. */
+  projectId?: string;
+  /** Cố định List hoặc Board (không hiện nút đổi chế độ xem). */
+  forcedView?: TasksView;
+  openId: string | undefined;
+  onOpen: (id: string) => void;
+  onClose: () => void;
+  heading?: ReactNode;
+};
+
+/** Trang Tasks và hai tab Tasks/Board của Project dùng chung phần này. */
+export function TasksWorkspace({
+  projectId,
+  forcedView,
+  openId: id,
+  onOpen: open,
+  onClose: close,
+  heading,
+}: WorkspaceProps) {
   const t = useT();
   const ctx = useDateCtx();
-  const navigate = useNavigate();
-  const { search } = useLocation();
-  const { id } = useParams();
   const [sp, setSp] = useSearchParams();
   const setCreateOpen = useUiStore((s) => s.setCreateTaskOpen);
   const query = parseTasksQuery(sp);
-  const { filter, view } = query;
+  const view = forcedView ?? query.view;
+  const filter: TaskFilter = projectId ? { ...query.filter, projectId } : query.filter;
+  const { data: projects = [] } = useProjects(false);
+  const projectsById = new Map(projects.map((p) => [p.id, p]));
   const { data, isLoading, error, refetch } = useTasks(filter);
   const { data: tags = [] } = useTags();
   const { data: areas = [] } = useAreas();
 
-  const update = (next: Partial<TasksQuery> & { filter?: TaskFilter }) =>
-    setSp(new URLSearchParams(buildTasksSearch({ view, filter, ...next }).replace(/^\?/, '')), {
-      replace: true,
-    });
+  const update = (next: Partial<TasksQuery> & { filter?: TaskFilter }) => {
+    const params = new URLSearchParams(
+      buildTasksSearch({ view, filter, ...next }).replace(/^\?/, ''),
+    );
+    params.delete('project');
+    const taskParam = sp.get('task');
+    if (taskParam) params.set('task', taskParam);
+    setSp(params, { replace: true });
+  };
   const patchFilter = (p: Partial<TaskFilter>) => {
     const next: TaskFilter = { ...filter, ...p };
+    delete next.projectId;
     (Object.keys(next) as (keyof TaskFilter)[]).forEach((k) => {
       if (next[k] === undefined) delete next[k];
     });
     update({ filter: next });
   };
-  const open = (taskId: string) => void navigate(`/tasks/${taskId}${search}`);
-  const close = () => void navigate(`/tasks${search}`);
 
-  const hasFilter = Object.keys(filter).length > 0;
+  const hasFilter = Object.keys(filter).filter((k) => k !== 'projectId').length > 0;
   const quick: { value: DueFilter | undefined; label: string }[] = [
     { value: undefined, label: t('tasks.quick.all') },
     ...DUES.map((d) => ({ value: d, label: t(`tasks.quick.${d}` as TKey) })),
@@ -136,36 +161,49 @@ export function TasksPage() {
       />
     );
   else if (view === 'board') body = <TaskBoard tasks={data} ctx={ctx} openId={id} onOpen={open} />;
-  else body = <TaskList tasks={data} tags={tags} ctx={ctx} openId={id} onOpen={open} />;
+  else
+    body = (
+      <TaskList
+        tasks={data}
+        tags={tags}
+        ctx={ctx}
+        openId={id}
+        onOpen={open}
+        projectsById={projectsById}
+        hideProject={!!projectId}
+      />
+    );
 
   return (
     <div className="flex h-full min-w-0">
-      <div className="flex min-w-0 flex-1 flex-col gap-3 p-6">
+      <div className={cn('flex min-w-0 flex-1 flex-col gap-3', !projectId && 'p-6')}>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold">{t('tasks.title')}</h1>
+          {heading ?? <h1 className="text-xl font-semibold">{t('tasks.title')}</h1>}
           <div className="flex items-center gap-2">
-            <div
-              role="group"
-              aria-label={t('tasks.views')}
-              className="flex rounded-md border border-border"
-            >
-              {views.map((v) => (
-                <button
-                  key={v.value}
-                  type="button"
-                  aria-pressed={view === v.value}
-                  onClick={() => update({ view: v.value })}
-                  className={cn(
-                    'flex h-8 items-center gap-1.5 px-3 text-sm first:rounded-l-md last:rounded-r-md',
-                    view === v.value ? 'bg-primary text-primary-fg' : 'hover:bg-border/60',
-                  )}
-                >
-                  <v.icon className="size-4" aria-hidden />
-                  {v.label}
-                </button>
-              ))}
-            </div>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
+            {!forcedView && (
+              <div
+                role="group"
+                aria-label={t('tasks.views')}
+                className="flex rounded-md border border-border"
+              >
+                {views.map((v) => (
+                  <button
+                    key={v.value}
+                    type="button"
+                    aria-pressed={view === v.value}
+                    onClick={() => update({ view: v.value })}
+                    className={cn(
+                      'flex h-8 items-center gap-1.5 px-3 text-sm first:rounded-l-md last:rounded-r-md',
+                      view === v.value ? 'bg-primary text-primary-fg' : 'hover:bg-border/60',
+                    )}
+                  >
+                    <v.icon className="size-4" aria-hidden />
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Button size="sm" onClick={() => setCreateOpen(true, projectId)}>
               <Plus />
               {t('tasks.new')}
             </Button>
@@ -214,12 +252,14 @@ export function TasksPage() {
             onChange={(v) => patchFilter({ tagId: v })}
             options={tags.map((x) => ({ value: x.id, label: x.name }))}
           />
-          <FilterSelect
-            label={t('tasks.filter.area')}
-            value={filter.areaId ?? ''}
-            onChange={(v) => patchFilter({ areaId: v })}
-            options={areas.map((a) => ({ value: a.id, label: a.name }))}
-          />
+          {!projectId && (
+            <FilterSelect
+              label={t('tasks.filter.area')}
+              value={filter.areaId ?? ''}
+              onChange={(v) => patchFilter({ areaId: v })}
+              options={areas.map((a) => ({ value: a.id, label: a.name }))}
+            />
+          )}
           <div className="flex items-center gap-1.5">
             <Label htmlFor="f-sort" className="text-muted">
               {t('tasks.filter.sort')}
@@ -256,5 +296,18 @@ export function TasksPage() {
       </div>
       {id && <TaskDetailPanel key={id} id={id} onClose={close} />}
     </div>
+  );
+}
+
+export function TasksPage() {
+  const navigate = useNavigate();
+  const { search } = useLocation();
+  const { id } = useParams();
+  return (
+    <TasksWorkspace
+      openId={id}
+      onOpen={(taskId) => void navigate(`/tasks/${taskId}${search}`)}
+      onClose={() => void navigate(`/tasks${search}`)}
+    />
   );
 }

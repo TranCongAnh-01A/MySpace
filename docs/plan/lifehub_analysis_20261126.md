@@ -217,10 +217,10 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [ ] Hoàn thiện giao diện Quick Capture; `Ctrl+K` Command Palette kèm tìm kiếm; `Ctrl+N`.
 - **Xong khi:** đi trọn spec 5.2 bước 1–2 bằng mock; danh sách 5.000 Task mock cuộn mượt.
 
-#### 📍 Phase C3: Projects + Dashboard (v0.3)
+#### ✅ 📍 Phase C3: Projects + Dashboard (v0.3)
 - **Việc:**
-  - [ ] Project với các tab Overview / Tasks / Board / Notes (placeholder đến v0.5) / Settings; hộp thoại lưu trữ/xoá có lựa chọn `mode`.
-  - [ ] Dashboard/Today: thẻ số liệu, việc hôm nay, quá hạn, sắp tới, dự án; bấm widget mở bản ghi gốc; thêm nhanh.
+  - [x] Project với các tab Overview / Tasks / Board / Notes (placeholder đến v0.5) / Settings; hộp thoại lưu trữ/xoá có lựa chọn `mode`.
+  - [x] Dashboard/Today: thẻ số liệu, việc hôm nay, quá hạn, sắp tới, dự án; bấm widget mở bản ghi gốc; thêm nhanh.
 - **Xong khi:** dữ liệu demo GGStudio hiển thị đúng 65%; kéo thả trên Board giữ thứ tự sau khi tải lại.
 
 #### 📍 Phase C4: Calendar (v0.4)

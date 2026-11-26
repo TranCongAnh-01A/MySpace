@@ -10,6 +10,11 @@ import type {
   AreaPatch,
   Backup,
   ChecklistItem,
+  ChildMode,
+  Project,
+  ProjectCreate,
+  ProjectOverview,
+  ProjectPatch,
   SearchHit,
   SearchKind,
   SettingsPatch,
@@ -23,6 +28,7 @@ import type {
   TaskPatch,
   TaskStatus,
   TaskStatusResult,
+  TodayView,
   TrashItem,
   TrashKind,
 } from './contract';
@@ -271,6 +277,67 @@ export function taskSetTags(taskId: string, tagIds: string[]): Promise<Task> {
 export function search(query: string, kinds?: SearchKind[], limit?: number): Promise<SearchHit[]> {
   if (isMock) return mock.mockSearch(query, kinds, limit);
   return invoke<SearchHit[]>('search', { query, kinds: kinds ?? null, limit: limit ?? null });
+}
+
+// ---- v0.3: projects, dashboard (hợp đồng B3 mục 2.1) ----
+
+export function projectList(archived?: boolean): Promise<Project[]> {
+  if (isMock) return mock.mockProjectList(archived);
+  return invoke<Project[]>('project_list', { archived: archived ?? null });
+}
+
+export function projectGetOverview(id: string): Promise<ProjectOverview> {
+  if (isMock) return mock.mockProjectGetOverview(id);
+  return invoke<ProjectOverview>('project_get_overview', { id });
+}
+
+export function projectCreate(input: ProjectCreate): Promise<Project> {
+  if (isMock) return mock.mockProjectCreate(input);
+  return invoke<Project>('project_create', { input });
+}
+
+export function projectUpdate(
+  id: string,
+  patch: ProjectPatch,
+  baseVersion: number,
+): Promise<Project> {
+  if (isMock) return mock.mockProjectUpdate(id, patch, baseVersion);
+  return invoke<Project>('project_update', { id, patch, baseVersion });
+}
+
+export function projectReorder(id: string, beforeId?: string, afterId?: string): Promise<Project> {
+  if (isMock) return mock.mockProjectReorder(id, beforeId, afterId);
+  return invoke<Project>('project_reorder', {
+    id,
+    beforeId: beforeId ?? null,
+    afterId: afterId ?? null,
+  });
+}
+
+export function projectArchive(id: string, mode: ChildMode): Promise<void> {
+  if (isMock) return mock.mockProjectArchive(id, mode);
+  return invoke<void>('project_archive', { id, mode });
+}
+
+export function projectUnarchive(id: string): Promise<void> {
+  if (isMock) return mock.mockProjectUnarchive(id);
+  return invoke<void>('project_unarchive', { id });
+}
+
+export function projectDelete(id: string, mode: ChildMode): Promise<void> {
+  if (isMock) return mock.mockProjectDelete(id, mode);
+  return invoke<void>('project_delete', { id, mode });
+}
+
+export function dashboardToday(): Promise<TodayView> {
+  if (isMock) return mock.mockDashboardToday();
+  return invoke<TodayView>('dashboard_today');
+}
+
+/** Chỉ có ở bản debug. Đã có dữ liệu mẫu → `CONFLICT`. */
+export function seedDemoData(): Promise<void> {
+  if (isMock) return mock.mockSeedDemoData();
+  return invoke<void>('seed_demo_data');
 }
 
 /** Lấy thông báo hiển thị được từ lỗi của command (`AppError`) hoặc lỗi bất kỳ. */

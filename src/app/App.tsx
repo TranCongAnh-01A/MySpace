@@ -4,7 +4,7 @@ import { useTheme } from '@/lib/theme/theme';
 import { useSettings } from '@/modules/settings/hooks';
 import { useT } from '@/lib/i18n';
 import { CommandPalette } from './command-palette/CommandPalette';
-import { GlobalCreateTask } from './GlobalCreateTask';
+import { GlobalCreateProject, GlobalCreateTask } from './GlobalCreateTask';
 import { Providers } from './providers';
 import { QuickAddDialog } from './QuickAddDialog';
 import { AppRoutes } from './router';
@@ -36,6 +36,7 @@ function Shell() {
       </div>
       <QuickAddDialog />
       <GlobalCreateTask />
+      <GlobalCreateProject />
       <CommandPalette />
       <Toaster />
     </div>

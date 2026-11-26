@@ -1,11 +1,20 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { CheckSquare, Inbox, PanelLeftClose, PanelLeftOpen, Settings, Trash2 } from 'lucide-react';
+import {
+  CalendarCheck,
+  CheckSquare,
+  Inbox,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Settings,
+  Trash2,
+} from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useT } from '@/lib/i18n';
 import { useInboxOpen } from '@/modules/inbox/hooks';
 import { useAreas } from '@/modules/tasks/hooks';
 import { cn } from '@/lib/utils';
+import { ProjectsNav } from './ProjectsNav';
 import { useUiStore } from './ui-store';
 
 function NavItem({
@@ -60,7 +69,7 @@ function NavItem({
   );
 }
 
-// v0.1 chỉ hiện Inbox và Settings (spec 4.2: không tạo menu chết).
+// Spec 4.2: không tạo menu chết. v0.3: Today, Inbox, Tasks, nhóm Dự án, Thùng rác, Cài đặt.
 export function Sidebar() {
   const t = useT();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
@@ -78,6 +87,12 @@ export function Sidebar() {
     >
       <nav aria-label={t('nav.main')} className="flex flex-1 flex-col gap-1">
         <NavItem
+          to="/today"
+          icon={<CalendarCheck />}
+          label={t('nav.today')}
+          collapsed={collapsed}
+        />
+        <NavItem
           to="/inbox"
           icon={<Inbox />}
           label={t('nav.inbox')}
@@ -85,6 +100,7 @@ export function Sidebar() {
           collapsed={collapsed}
         />
         <NavItem to="/tasks" icon={<CheckSquare />} label={t('nav.tasks')} collapsed={collapsed} />
+        <ProjectsNav collapsed={collapsed} />
         {areas.length > 0 && (
           <div className="mt-3">
             {!collapsed && (
