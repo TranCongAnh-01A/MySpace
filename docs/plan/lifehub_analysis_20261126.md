@@ -163,7 +163,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
 ### Phiên B: Core Rust
 > Đầu mỗi phase: `git merge main`, sửa lỗi ghép nối được giao (nếu có), đọc kế hoạch triển khai của phase đó do phiên chính viết (`docs/plan/lifehub_B<n>_impl_*.md`). Mỗi use case có test integration với SQLite in-memory. Cuối phase viết `docs/explain/lifehub_core-b<n>_explain_YYYYMMDD.md` giải thích ngắn phần Rust vừa làm (câu hỏi 3).
 
-#### 📍 Phase B1: Nền tảng (v0.1)
+#### 📍 Phase B1: Nền tảng (v0.1) ✅
 - **Việc:**
   - [ ] Helper chung: `changelog::record`, `search::index/remove` (chưa có module nào dùng search), sinh UUID v7, giờ UTC, `fractional_index`.
   - [ ] Settings (giá trị mặc định nằm trong code), `shortcut_register` kiểm tra phím bị trùng, autostart.

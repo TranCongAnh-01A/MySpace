@@ -3,6 +3,11 @@ use tauri::{AppHandle, Manager};
 pub const MAIN: &str = "main";
 pub const QUICK_CAPTURE: &str = "quick-capture";
 
+/// App được mở với `--hidden` (autostart cùng Windows)?
+pub fn launched_hidden() -> bool {
+    std::env::args().any(|a| a == "--hidden")
+}
+
 /// Hiện cửa sổ chính (kể cả khi đang ẩn xuống khay hoặc thu nhỏ) và đưa lên trước.
 pub fn show_main(app: &AppHandle) {
     if let Some(w) = app.get_webview_window(MAIN) {

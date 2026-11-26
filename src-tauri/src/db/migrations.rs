@@ -5,6 +5,7 @@ use rusqlite_migration::{Migrations, M};
 
 use crate::clock::Clock;
 use crate::error::AppResult;
+use crate::system::backup::{self, BackupReason};
 
 /// Danh sách migration theo thứ tự. Thêm file mới ở cuối mảng.
 const SCRIPTS: &[&str] = &[include_str!("../../migrations/001_init.sql")];
@@ -25,11 +26,12 @@ pub fn needs_backup(conn: &Connection) -> AppResult<bool> {
     Ok(v > 0 && v < SCRIPTS.len())
 }
 
-/// Chép DB sang `<dir>/pre-migration-<UTC>.db` bằng `VACUUM INTO`.
+/// Chép DB sang `<dir>/lifehub-pre-migration-<YYYYMMDD-HHMMSS>Z.db` bằng `VACUUM INTO`.
+/// Metadata được ghi sau khi migrate xong (`backup::register_existing`).
 pub fn backup_pre_migration(conn: &Connection, dir: &Path, clock: &dyn Clock) -> AppResult<()> {
     std::fs::create_dir_all(dir)?;
-    let stamp = clock.now().format("%Y%m%dT%H%M%SZ");
-    let target = dir.join(format!("pre-migration-{stamp}.db"));
+    let name = backup::file_name(BackupReason::PreMigration, clock.now());
+    let target = dir.join(name);
     conn.execute("VACUUM INTO ?1", [target.to_string_lossy().as_ref()])?;
     Ok(())
 }
@@ -128,7 +130,9 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("lifehub-test-{}", crate::ids::new_id()));
         let clock = FixedClock(Utc.with_ymd_and_hms(2026, 11, 26, 1, 2, 3).unwrap());
         backup_pre_migration(&conn, &dir, &clock).unwrap();
-        assert!(dir.join("pre-migration-20261126T010203Z.db").exists());
+        assert!(dir
+            .join("lifehub-pre-migration-20261126-010203Z.db")
+            .exists());
         std::fs::remove_dir_all(dir).unwrap();
     }
 }
