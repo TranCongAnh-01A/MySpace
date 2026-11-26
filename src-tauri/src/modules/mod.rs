@@ -1,4 +1,7 @@
+pub mod areas;
 pub mod inbox;
+pub mod search;
+pub mod settings;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
@@ -20,6 +23,6 @@ pub fn emit_entity_changed(app: &AppHandle, entity: &str, ids: Vec<String>) {
         ids,
     };
     if let Err(e) = app.emit("entity-changed", payload) {
-        eprintln!("không phát được entity-changed: {e}");
+        tracing::warn!(entity, error = %e, "không phát được entity-changed");
     }
 }

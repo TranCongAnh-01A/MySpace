@@ -1,3 +1,4 @@
+pub mod changelog;
 pub mod migrations;
 
 use std::path::Path;
@@ -44,6 +45,10 @@ pub fn open(path: &Path, backups_dir: &Path, clock: &dyn Clock) -> AppResult<Con
         migrations::backup_pre_migration(&conn, backups_dir, clock)?;
     }
     migrations::run(&mut conn)?;
+    // Đưa bản pre-migration vừa tạo (và các bản cũ) vào bảng `backups`, dọn bản thừa.
+    if let Err(e) = crate::system::backup::register_existing(&conn, backups_dir) {
+        tracing::warn!(code = ?e.code, "không đồng bộ được danh sách sao lưu");
+    }
     Ok(conn)
 }
 
