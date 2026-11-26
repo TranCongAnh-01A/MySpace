@@ -171,7 +171,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [ ] Backup: thủ công, tự động hằng ngày, trước migration, trước restore; giữ 7 bản; restore khởi động lại app; `export_json`; mở thư mục dữ liệu/log; log bằng `tracing`.
 - **Xong khi:** test xanh cho settings, areas, backup/restore (sao lưu → sửa dữ liệu → khôi phục → so sánh lại). Gọi được từng command qua mock UI hoặc devtools.
 
-#### 📍 Phase B2: Inbox + Tasks + Search (v0.2)
+#### 📍 Phase B2: Inbox + Tasks + Search (v0.2) ✅
 - **Việc:**
   - [ ] Inbox đủ CRUD, `inbox_convert_to_task` trong một transaction; gọi lần hai → `CONFLICT`.
   - [ ] Tasks: CRUD, trạng thái kèm `completed_at`/`previous_status`, deadline theo ngày hoặc ngày giờ, lọc và sắp xếp, lưu trữ, Trash (xoá mềm, khôi phục, purge sau 30 ngày), `task_move`.

@@ -2207,6 +2207,7 @@ dependencies = [
  "rusqlite_migration",
  "serde",
  "serde_json",
+ "serde_with",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",

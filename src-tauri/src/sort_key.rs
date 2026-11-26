@@ -4,6 +4,8 @@
 //! trả về sắp xếp đúng theo so sánh TEXT (BINARY) của SQLite. Khoá không bao giờ kết
 //! thúc bằng `0`, nhờ đó luôn còn chỗ để chèn thêm vào giữa.
 
+use crate::error::{AppError, AppResult};
+
 const DIGITS: &[u8; 62] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 fn digit_value(c: u8) -> usize {
@@ -19,6 +21,31 @@ pub fn between(before: Option<&str>, after: Option<&str>) -> String {
         debug_assert!(a < b, "before phải nhỏ hơn after");
     }
     String::from_utf8(midpoint(a, b)).expect("khoá luôn là ASCII")
+}
+
+/// Tính khoá cho một lần "xếp vào cạnh" (kéo thả). `before` = khoá mục ngay trên vị trí mới,
+/// `after` = khoá mục ngay dưới. Chỉ cho một phía thì phía kia lấy từ mục kề thật sự qua
+/// `neighbour(khoá, sau_hay_không)`. Cả hai thiếu thì xếp cuối (`last`).
+pub fn place(
+    before: Option<&str>,
+    after: Option<&str>,
+    last: impl FnOnce() -> AppResult<Option<String>>,
+    neighbour: impl Fn(&str, bool) -> AppResult<Option<String>>,
+) -> AppResult<String> {
+    let (lower, upper) = match (before, after) {
+        (None, None) => (last()?, None),
+        (Some(b), Some(a)) => (Some(b.to_string()), Some(a.to_string())),
+        (Some(b), None) => (Some(b.to_string()), neighbour(b, true)?),
+        (None, Some(a)) => (neighbour(a, false)?, Some(a.to_string())),
+    };
+    if let (Some(l), Some(u)) = (&lower, &upper) {
+        if l >= u {
+            return Err(AppError::validation(
+                "beforeId phải nằm ngay trên afterId trong danh sách",
+            ));
+        }
+    }
+    Ok(between(lower.as_deref(), upper.as_deref()))
 }
 
 fn midpoint(a: &[u8], b: Option<&[u8]>) -> Vec<u8> {
