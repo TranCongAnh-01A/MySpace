@@ -62,6 +62,7 @@ pub fn search(
         "SELECT m.kind, m.entity_id,
                 COALESCE(CASE m.kind
                   WHEN 'Task' THEN (SELECT title FROM tasks WHERE id = m.entity_id)
+                  WHEN 'Project' THEN (SELECT name FROM projects WHERE id = m.entity_id)
                   WHEN 'Inbox' THEN (SELECT content FROM inbox_items WHERE id = m.entity_id)
                   END, search_index.title),
                 snippet(search_index, 1, '', '', '…', 12)
@@ -107,6 +108,23 @@ fn parse_kind(s: &str) -> Option<SearchKind> {
     ]
     .into_iter()
     .find(|k| k.as_str() == s)
+}
+
+/// Project chưa có trong chỉ mục (tạo trước v0.3 hoặc chỉ mục bị dựng lại) thì index nốt.
+pub fn reindex_missing_projects(conn: &Connection) -> AppResult<()> {
+    let missing: Vec<(String, String, String)> = conn
+        .prepare(
+            "SELECT id, name, description FROM projects
+             WHERE deleted_at IS NULL
+               AND NOT EXISTS (SELECT 1 FROM search_map m
+                               WHERE m.kind = 'Project' AND m.entity_id = projects.id)",
+        )?
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+        .collect::<Result<_, _>>()?;
+    for (id, name, body) in missing {
+        infrastructure::index(conn, SearchKind::Project, &id, &name, &body)?;
+    }
+    Ok(())
 }
 
 /// Dữ liệu tạo từ trước khi có chỉ mục (phase A) chưa được index: dựng lại khi chỉ mục rỗng.

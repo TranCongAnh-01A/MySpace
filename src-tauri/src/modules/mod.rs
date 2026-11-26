@@ -1,5 +1,7 @@
 pub mod areas;
+pub mod dashboard;
 pub mod inbox;
+pub mod projects;
 pub mod search;
 pub mod settings;
 pub mod tags;

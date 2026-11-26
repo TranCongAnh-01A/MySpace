@@ -179,7 +179,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [ ] FTS5 cho Task và Inbox, tìm không dấu.
 - **Xong khi:** test xanh cho các quy tắc ở spec 3.3 (Done/mở lại, lặp không trùng, đổi Inbox hai lần), test tìm "nhac nho" ra "nhắc nhở", lọc 5.000 Task dưới 100 ms (test có đo).
 
-#### 📍 Phase B3: Projects + Dashboard (v0.3)
+#### 📍 Phase B3: Projects + Dashboard (v0.3) ✅
 - **Việc:**
   - [ ] Projects: CRUD, overview, tiến độ (không tính Task đã lưu trữ hoặc đã xoá), archive/delete với `mode`.
   - [ ] Search thêm Project; `dashboard_today` (Task hôm nay, quá hạn, 7 ngày tới, dự án đang chạy); `seed_demo_data` (GGStudio giả lập).

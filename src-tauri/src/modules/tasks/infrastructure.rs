@@ -399,6 +399,16 @@ impl TaskRepository for SqliteTaskRepository<'_> {
         Ok(found)
     }
 
+    fn project_is_active(&self, id: &str) -> AppResult<bool> {
+        let n: i64 = self.conn.query_row(
+            "SELECT count(*) FROM projects
+             WHERE id = ?1 AND deleted_at IS NULL AND archived_at IS NULL",
+            [id],
+            |r| r.get(0),
+        )?;
+        Ok(n > 0)
+    }
+
     fn replace_tags(&self, task_id: &str, tag_ids: &[String]) -> AppResult<()> {
         self.conn
             .execute("DELETE FROM task_tags WHERE task_id = ?1", [task_id])?;
