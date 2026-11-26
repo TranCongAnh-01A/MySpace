@@ -1,3 +1,5 @@
-//! Chỉ mục tìm kiếm (FTS5). B1 chỉ có hạ tầng; module nghiệp vụ gọi từ B2 trở đi.
+//! Tìm kiếm toàn cục (FTS5): hạ tầng index/remove + use case `search`.
 
+pub mod application;
+pub mod commands;
 pub mod infrastructure;

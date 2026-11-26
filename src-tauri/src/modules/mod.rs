@@ -2,6 +2,9 @@ pub mod areas;
 pub mod inbox;
 pub mod search;
 pub mod settings;
+pub mod tags;
+pub mod tasks;
+pub mod trash;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};

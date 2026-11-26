@@ -15,9 +15,11 @@ use tauri_plugin_window_state::StateFlags;
 
 use clock::SystemClock;
 use db::Db;
+use modules::search::application as search_app;
 use modules::settings::application as settings_app;
 use modules::settings::commands::SettingsState;
 use modules::settings::infrastructure::SqliteSettingsRepository;
+use modules::trash::application as trash_app;
 use system::windows::{launched_hidden, show_main, MAIN, QUICK_CAPTURE};
 use system::{backup, AppDirs};
 
@@ -34,6 +36,25 @@ fn spawn_daily_backup(app: AppHandle, dir: std::path::PathBuf) {
         }
         std::thread::sleep(Duration::from_secs(3600));
     });
+}
+
+/// Việc dọn dẹp lúc khởi động: dựng lại chỉ mục tìm kiếm nếu rỗng, xoá hẳn mục Trash quá hạn.
+/// Lỗi chỉ ghi log để không chặn app khởi động.
+fn startup_maintenance(conn: &mut rusqlite::Connection, trash_retention_days: u32) {
+    let result = conn
+        .transaction()
+        .map_err(error::AppError::from)
+        .and_then(|tx| {
+            search_app::reindex_if_empty(&tx)?;
+            let purged = trash_app::purge_expired(&tx, &SystemClock, trash_retention_days)?;
+            tx.commit()?;
+            Ok(purged)
+        });
+    match result {
+        Ok(0) => {}
+        Ok(n) => tracing::info!(purged = n, "đã xoá hẳn mục Trash quá hạn"),
+        Err(e) => tracing::warn!(code = ?e.code, "dọn dẹp lúc khởi động thất bại"),
+    }
 }
 
 pub fn run() {
@@ -66,8 +87,9 @@ pub fn run() {
             }
             tracing::info!(version = %app.package_info().version, "LifeHub khởi động");
 
-            let conn = db::open(&dirs.data.join("lifehub.db"), &dirs.backups, &SystemClock)?;
+            let mut conn = db::open(&dirs.data.join("lifehub.db"), &dirs.backups, &SystemClock)?;
             let settings = settings_app::get(&SqliteSettingsRepository::new(&conn))?;
+            startup_maintenance(&mut conn, settings.trash_retention_days);
             app.manage(Db::new(conn));
             app.manage(dirs.clone());
 
@@ -108,6 +130,32 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             modules::inbox::commands::inbox_list,
             modules::inbox::commands::inbox_create,
+            modules::inbox::commands::inbox_update,
+            modules::inbox::commands::inbox_delete,
+            modules::inbox::commands::inbox_convert_to_task,
+            modules::tasks::commands::task_list,
+            modules::tasks::commands::task_get,
+            modules::tasks::commands::task_create,
+            modules::tasks::commands::task_update,
+            modules::tasks::commands::task_set_status,
+            modules::tasks::commands::task_move,
+            modules::tasks::commands::task_archive,
+            modules::tasks::commands::task_unarchive,
+            modules::tasks::commands::task_delete,
+            modules::tasks::commands::task_set_tags,
+            modules::tasks::commands::checklist_add,
+            modules::tasks::commands::checklist_update,
+            modules::tasks::commands::checklist_toggle,
+            modules::tasks::commands::checklist_reorder,
+            modules::tasks::commands::checklist_delete,
+            modules::tags::commands::tag_list,
+            modules::tags::commands::tag_create,
+            modules::tags::commands::tag_update,
+            modules::tags::commands::tag_delete,
+            modules::trash::commands::trash_list,
+            modules::trash::commands::trash_restore,
+            modules::trash::commands::trash_empty,
+            modules::search::commands::search,
             modules::settings::commands::settings_get,
             modules::settings::commands::settings_update,
             modules::settings::commands::shortcut_register,

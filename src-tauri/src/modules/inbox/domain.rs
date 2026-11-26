@@ -61,7 +61,7 @@ impl InboxItem {
     }
 }
 
-fn validate_content(raw: &str) -> AppResult<String> {
+pub fn validate_content(raw: &str) -> AppResult<String> {
     let content = raw.trim();
     if content.is_empty() {
         return Err(AppError::validation("Nội dung không được để trống"));

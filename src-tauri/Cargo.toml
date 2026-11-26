@@ -33,6 +33,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 iana-time-zone = "0.1"
 chrono-tz = "0.10"
+serde_with = "3"
 
 [profile.release]
 codegen-units = 1

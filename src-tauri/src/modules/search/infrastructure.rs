@@ -1,12 +1,16 @@
 //! Ghi/xoá chỉ mục FTS5 qua `search_map` (không quét bảng, không dùng trigger).
-// Chưa module nào gọi (B2 trở đi), nên ngoài test thì chưa có chỗ dùng.
+// Project/Note chưa có module gọi (B3, B5).
 #![allow(dead_code)]
 
 use rusqlite::{params, Connection, OptionalExtension};
 
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
 use crate::error::AppResult;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../src/lib/ipc/bindings/")]
 pub enum SearchKind {
     Task,
     Project,
@@ -15,7 +19,7 @@ pub enum SearchKind {
 }
 
 impl SearchKind {
-    fn as_str(self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Task => "Task",
             Self::Project => "Project",
@@ -35,6 +39,28 @@ fn mapped_rowid(conn: &Connection, kind: SearchKind, id: &str) -> AppResult<Opti
         .optional()?)
 }
 
+/// `đ/Đ` không có dạng tách dấu nên FTS (`remove_diacritics`) không gộp được với `d`.
+/// Thêm một bản đã gộp vào cuối để gõ "dien" vẫn ra "điện". Tiêu đề hiển thị lấy từ bảng gốc
+/// (xem `search::application`), nên bản gộp thêm trong cột title không lộ ra ngoài.
+fn with_folded_copy(text: &str) -> String {
+    if text.contains(['đ', 'Đ']) {
+        let folded: String = text
+            .chars()
+            .map(|c| match c {
+                'đ' => 'd',
+                'Đ' => 'D',
+                c => c,
+            })
+            .collect();
+        format!(
+            "{text}
+{folded}"
+        )
+    } else {
+        text.to_string()
+    }
+}
+
 /// Thêm hoặc thay nội dung tìm kiếm của một thực thể.
 pub fn index(
     conn: &Connection,
@@ -48,7 +74,7 @@ pub fn index(
     }
     conn.execute(
         "INSERT INTO search_index (title, body) VALUES (?1, ?2)",
-        params![title, body],
+        params![with_folded_copy(title), with_folded_copy(body)],
     )?;
     let rowid = conn.last_insert_rowid();
     conn.execute(
