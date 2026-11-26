@@ -1,0 +1,114 @@
+/* Theme FullCalendar theo token LifeHub (Dark và Light dùng chung biến). */
+.lh-calendar .fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--bg);
+  --fc-neutral-bg-color: var(--surface);
+  --fc-neutral-text-color: var(--muted);
+  --fc-today-bg-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  --fc-now-indicator-color: var(--danger);
+  --fc-event-bg-color: var(--primary);
+  --fc-event-border-color: var(--primary);
+  --fc-event-text-color: var(--primary-fg);
+  --fc-list-event-hover-bg-color: color-mix(in srgb, var(--border) 60%, transparent);
+  --fc-highlight-color: color-mix(in srgb, var(--primary) 18%, transparent);
+  --fc-non-business-color: transparent;
+  --fc-small-font-size: 0.8125rem;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+.lh-calendar .fc a {
+  color: inherit;
+}
+.lh-calendar .fc .fc-col-header-cell-cushion,
+.lh-calendar .fc .fc-daygrid-day-number,
+.lh-calendar .fc .fc-timegrid-slot-label-cushion,
+.lh-calendar .fc .fc-list-day-text,
+.lh-calendar .fc .fc-list-day-side-text {
+  color: var(--text);
+  text-decoration: none;
+}
+.lh-calendar .fc .fc-timegrid-slot-label-cushion,
+.lh-calendar .fc .fc-timegrid-axis-cushion {
+  color: var(--muted);
+}
+.lh-calendar .fc .fc-list-event-title,
+.lh-calendar .fc .fc-list-event-time {
+  color: var(--text);
+}
+.lh-calendar .fc .fc-list-day-cap,
+.lh-calendar .fc .fc-list-day > * {
+  background: var(--surface);
+}
+.lh-calendar .fc-event {
+  cursor: pointer;
+}
+/* Event: nền màu chủ đạo; time block có viền trái đậm hơn. */
+.lh-calendar .fc-event.lh-event {
+  color: var(--primary-fg);
+}
+.lh-calendar .fc-event.lh-block {
+  border-left-width: 4px;
+  border-left-color: var(--success);
+}
+/* Deadline: viền nét đứt màu cảnh báo, nền nhạt, có cờ + chữ "Hạn:" (không chỉ khác màu). */
+.lh-calendar .fc-event.lh-deadline {
+  --fc-event-text-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, var(--bg));
+  border: 1.5px dashed var(--warning);
+  color: var(--warning);
+  font-weight: 500;
+}
+.lh-calendar .fc-event.lh-deadline .fc-event-main,
+.lh-calendar .fc-event.lh-deadline .fc-event-title {
+  color: var(--warning);
+}
+.lh-calendar .fc-event.lh-deadline.lh-done {
+  opacity: 0.7;
+}
+.lh-calendar .fc-list-event.lh-deadline td {
+  color: var(--warning);
+}
+.lh-calendar .fc-list-event.lh-deadline.lh-done .fc-list-event-title {
+  text-decoration: line-through;
+}
+.lh-calendar .fc-event-main {
+  padding: 1px 3px;
+}
+.lh-calendar .fc-event:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.lh-draggable:active {
+  cursor: grabbing;
+}
+/* Nội dung mục trong lịch (HTML thuần do renderItem tạo). */
+.lh-calendar .lh-ico {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+.lh-calendar .lh-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.lh-calendar .lh-grow {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lh-calendar .lh-strike {
+  text-decoration: line-through;
+}
+.lh-calendar .lh-block-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+}
+.lh-calendar .lh-time {
+  margin-right: 4px;
+  font-variant-numeric: tabular-nums;
+}

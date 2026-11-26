@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { CalendarPage } from '@/modules/calendar/CalendarPage';
 import { InboxPage } from '@/modules/inbox/InboxPage';
 import { ArchivedProjectsPage } from '@/modules/projects/ArchivedProjectsPage';
 import { ProjectPage } from '@/modules/projects/ProjectPage';
@@ -14,6 +15,7 @@ export function AppRoutes() {
       <Route path="/projects/archived" element={<ArchivedProjectsPage />} />
       <Route path="/projects/:id/:tab?" element={<ProjectPage />} />
       <Route path="/inbox" element={<InboxPage />} />
+      <Route path="/calendar" element={<CalendarPage />} />
       <Route path="/tasks/:id?" element={<TasksPage />} />
       <Route path="/trash" element={<TrashPage />} />
       <Route path="/settings/:tab?" element={<SettingsPage />} />

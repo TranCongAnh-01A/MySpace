@@ -1,20 +1,22 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, Plus, Sun } from 'lucide-react';
+import { BellOff, Check, Flag, Link2, Plus, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { LoadingBlock } from '@/components/ui/skeleton';
+import { useUiStore } from '@/app/ui-store';
 import { useT } from '@/lib/i18n';
 import { errorMessage, taskUpdate } from '@/lib/ipc/commands';
-import type { Project, Task, TodayView } from '@/lib/ipc/contract';
+import type { CalendarItem, Project, Task, TodayView } from '@/lib/ipc/contract';
 import { localToUtc, utcToLocalParts } from '@/lib/tz';
 import { cn } from '@/lib/utils';
 import { ProjectIcon } from '@/modules/projects/icons';
 import { ProgressBar } from '@/modules/projects/ProgressBar';
 import { useProjects } from '@/modules/projects/hooks';
+import { useMissedReminders } from '@/modules/reminders/hooks';
 import { CreateTaskDialog } from '@/modules/tasks/CreateTaskDialog';
 import { dueInfo, type DateCtx } from '@/modules/tasks/dates';
 import { invalidateTaskData, useCreateTask, useDateCtx, useSetStatus } from '@/modules/tasks/hooks';
@@ -59,6 +61,55 @@ function Widget({
       </CardTitle>
       {hasItems ? children : <p className="py-4 text-center text-muted">{empty}</p>}
     </Card>
+  );
+}
+
+/** Dòng thời gian hôm nay: Event và deadline, khác nhau bằng biểu tượng + chữ "Hạn". */
+function ScheduleList({ items, date, ctx }: { items: CalendarItem[]; date: string; ctx: DateCtx }) {
+  const t = useT();
+  return (
+    <ol className="space-y-1">
+      {items.map((item) => {
+        if (item.kind === 'Deadline') {
+          const { task } = item;
+          const done = task.status === 'Done';
+          const time = task.dueAt
+            ? utcToLocalParts(task.dueAt, ctx.timezone).time
+            : t('today.allDay');
+          return (
+            <li key={`dl:${task.id}`}>
+              <Link
+                to={`/today/${task.id}`}
+                className="flex items-center gap-2 rounded-md border border-dashed border-warning px-2 py-1.5 hover:bg-border/40"
+              >
+                <span className="w-24 shrink-0 text-xs text-muted tabular-nums">{time}</span>
+                <Flag className="size-4 shrink-0 text-warning" aria-hidden />
+                <span className={cn('truncate', done && 'line-through')}>
+                  <span className="font-medium text-warning">{t('today.deadlineTag')}: </span>
+                  {task.title}
+                </span>
+              </Link>
+            </li>
+          );
+        }
+        const e = item.event;
+        const time = e.isAllDay
+          ? t('today.allDay')
+          : `${utcToLocalParts(e.startAt ?? '', ctx.timezone).time}–${utcToLocalParts(e.endAt ?? '', ctx.timezone).time}`;
+        return (
+          <li key={`ev:${e.id}`}>
+            <Link
+              to={`/calendar?date=${date}&event=${e.id}`}
+              className="flex items-center gap-2 rounded-md border-l-4 border-primary bg-surface px-2 py-1.5 hover:bg-border/40"
+            >
+              <span className="w-24 shrink-0 text-xs text-muted tabular-nums">{time}</span>
+              {e.taskId && <Link2 className="size-4 shrink-0 text-muted" aria-hidden />}
+              <span className="truncate">{e.title}</span>
+            </Link>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -188,12 +239,23 @@ function Body({
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-4">
         <Stat label={t('today.stat.today')} value={view.today.length} />
+        <Stat
+          label={t('today.stat.events')}
+          value={view.schedule.filter((i) => i.kind === 'Event').length}
+        />
         <Stat label={t('today.stat.overdue')} value={view.overdue.length} tone="danger" />
         <Stat label={t('today.stat.projects')} value={view.activeProjects.length} />
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
+        <Widget
+          title={t('today.w.schedule')}
+          count={view.schedule.length}
+          empty={t('today.empty.schedule')}
+        >
+          <ScheduleList items={view.schedule} date={view.date} ctx={ctx} />
+        </Widget>
         <Widget title={t('today.w.today')} count={view.today.length} empty={t('today.empty.today')}>
           {rows(view.today)}
         </Widget>
@@ -250,6 +312,9 @@ export function TodayPage() {
   const [addOpen, setAddOpen] = useState(false);
   const create = useCreateTask(() => setAddOpen(false));
   useMidnightRefresh(ctx.timezone);
+  const { data: missed } = useMissedReminders();
+  const missedDeferred = useUiStore((s) => s.missedDeferred);
+  const setMissedDeferred = useUiStore((s) => s.setMissedDeferred);
 
   let body;
   if (isLoading) body = <LoadingBlock label={t('common.loading')} rows={6} />;
@@ -263,7 +328,11 @@ export function TodayPage() {
       />
     );
   else if (
-    data.today.length + data.overdue.length + data.upcoming.length + data.activeProjects.length ===
+    data.today.length +
+      data.overdue.length +
+      data.upcoming.length +
+      data.activeProjects.length +
+      data.schedule.length ===
     0
   )
     body = <EmptyState icon={<Sun />} title={t('today.empty.today')} />;
@@ -291,6 +360,18 @@ export function TodayPage() {
             {t('today.add')}
           </Button>
         </div>
+        {missedDeferred && missed && missed.length > 0 && (
+          <div
+            role="status"
+            className="flex items-center gap-2 rounded-md border border-warning px-3 py-2"
+          >
+            <BellOff className="size-4 shrink-0 text-warning" aria-hidden />
+            <span className="flex-1">{t('missed.banner', { n: missed.length })}</span>
+            <Button variant="secondary" size="sm" onClick={() => setMissedDeferred(false)}>
+              {t('missed.view')}
+            </Button>
+          </div>
+        )}
         {body}
       </div>
       {id && <TaskDetailPanel key={id} id={id} onClose={() => void navigate('/today')} />}

@@ -20,7 +20,6 @@ export type { Frequency } from './bindings/Frequency';
 export type { Recurrence } from './bindings/Recurrence';
 export type { Task } from './bindings/Task';
 export type { ChecklistItem } from './bindings/ChecklistItem';
-export type { TaskDetail } from './bindings/TaskDetail';
 export type { TaskCreate } from './bindings/TaskCreate';
 export type { TaskPatch } from './bindings/TaskPatch';
 export type { DueFilter } from './bindings/DueFilter';
@@ -45,4 +44,82 @@ export type { ProjectProgress } from './bindings/ProjectProgress';
 export type { StatusCounts } from './bindings/StatusCounts';
 export type { NoteSummary } from './bindings/NoteSummary';
 export type { ProjectOverview } from './bindings/ProjectOverview';
-export type { TodayView } from './bindings/TodayView';
+
+// v0.4 tạm — thay bằng bindings khi merge (chép đúng hợp đồng B4 mục 2.1)
+import type { ChecklistItem } from './bindings/ChecklistItem';
+import type { NoteSummary } from './bindings/NoteSummary';
+import type { ProjectProgress } from './bindings/ProjectProgress';
+import type { Task } from './bindings/Task';
+
+export type Calendar = { id: string; name: string; color?: string; isDefault: boolean };
+export type Event = {
+  id: string;
+  calendarId: string;
+  taskId?: string;
+  title: string;
+  description: string;
+  isAllDay: boolean;
+  startAt?: string;
+  endAt?: string;
+  startDate?: string;
+  endDate?: string; // inclusive
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+export type EventCreate = {
+  calendarId?: string;
+  title: string;
+  description?: string;
+  isAllDay: boolean;
+  startAt?: string;
+  endAt?: string;
+  startDate?: string;
+  endDate?: string;
+  taskId?: string;
+};
+export type EventPatch = {
+  title?: string;
+  description?: string;
+  calendarId?: string;
+  isAllDay?: boolean;
+  startAt?: string | null;
+  endAt?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+};
+export type CalendarItem = { kind: 'Event'; event: Event } | { kind: 'Deadline'; task: Task };
+export type ReminderStatus = 'Pending' | 'Sent' | 'Dismissed' | 'Missed';
+export type Reminder = {
+  id: string;
+  taskId?: string;
+  eventId?: string;
+  triggerAt: string;
+  offsetMinutes?: number;
+  status: ReminderStatus;
+  sentAt?: string;
+};
+export type ReminderSet = {
+  taskId?: string;
+  eventId?: string;
+  offsetMinutes?: number;
+  triggerAt?: string;
+};
+export type MissedReminder = { reminder: Reminder; title: string; dueLabelAt: string };
+export type TaskDetail = {
+  task: Task;
+  checklist: ChecklistItem[];
+  noteIds: string[];
+  reminders: Reminder[];
+};
+export type TodayView = {
+  date: string;
+  today: Task[];
+  overdue: Task[];
+  upcoming: Task[];
+  activeProjects: ProjectProgress[];
+  recentNotes: NoteSummary[];
+  schedule: CalendarItem[];
+};
+export type ReminderFired = { reminderId: string; taskId?: string; eventId?: string };
+export type Navigate = { route: string };

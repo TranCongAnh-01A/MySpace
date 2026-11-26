@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Command } from 'cmdk';
 import {
   CalendarCheck,
+  CalendarDays,
   CheckSquare,
   Inbox,
   Plus,
@@ -53,6 +54,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     { id: 'today', label: 'nav.today', icon: CalendarCheck, run: go('/today') },
     { id: 'inbox', label: 'nav.inbox', icon: Inbox, run: go('/inbox') },
     { id: 'tasks', label: 'nav.tasks', icon: CheckSquare, run: go('/tasks') },
+    { id: 'calendar', label: 'nav.calendar', icon: CalendarDays, run: go('/calendar') },
     { id: 'trash', label: 'nav.trash', icon: Trash2, run: go('/trash') },
     { id: 'settings', label: 'nav.settings', icon: Settings, run: go('/settings') },
   ];

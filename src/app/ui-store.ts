@@ -7,6 +7,9 @@ type UiState = {
   createTaskOpen: boolean;
   paletteOpen: boolean;
   createProjectOpen: boolean;
+  /** "Để sau" ở dialog nhắc nhở bị lỡ: không tự hiện lại tới lần khởi động sau. */
+  missedDeferred: boolean;
+  setMissedDeferred: (v: boolean) => void;
   toggleSidebar: () => void;
   setQuickAddOpen: (open: boolean) => void;
   setCreateTaskOpen: (open: boolean, projectId?: string) => void;
@@ -24,6 +27,8 @@ export const useUiStore = create<UiState>()(
       createTaskProjectId: undefined,
       paletteOpen: false,
       createProjectOpen: false,
+      missedDeferred: false,
+      setMissedDeferred: (v) => set({ missedDeferred: v }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setQuickAddOpen: (open) => set({ quickAddOpen: open }),
       setCreateTaskOpen: (open, projectId) =>

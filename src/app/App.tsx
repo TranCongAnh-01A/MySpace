@@ -11,11 +11,14 @@ import { AppRoutes } from './router';
 import { useAppShortcuts } from './shortcuts';
 import { Sidebar } from './Sidebar';
 import { TitleBar } from './TitleBar';
+import { MissedRemindersDialog } from '@/modules/reminders/MissedRemindersDialog';
+import { useCoreEvents } from './useCoreEvents';
 import { useEntityChangedInvalidation } from './useEntityChangedInvalidation';
 
 function Shell() {
   useEntityChangedInvalidation();
   useAppShortcuts();
+  useCoreEvents();
   const { data } = useSettings();
   useTheme(data?.theme);
   const t = useT(); // đồng thời cache ngôn ngữ + <html lang>
@@ -38,6 +41,7 @@ function Shell() {
       <GlobalCreateTask />
       <GlobalCreateProject />
       <CommandPalette />
+      <MissedRemindersDialog />
       <Toaster />
     </div>
   );

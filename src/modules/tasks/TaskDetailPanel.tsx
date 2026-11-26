@@ -30,6 +30,7 @@ import type {
 } from '@/lib/ipc/contract';
 import { localToUtc, todayIn, utcToLocalParts } from '@/lib/tz';
 import { cn } from '@/lib/utils';
+import { ReminderEditor } from '@/modules/reminders/ReminderEditor';
 import { Checklist } from './Checklist';
 import { dateToStr, strToDate } from './dateInput';
 import { dueDay, type DateCtx } from './dates';
@@ -417,6 +418,8 @@ function PanelBody({ detail, ctx }: { detail: TaskDetail; ctx: DateCtx }) {
       <Field id="d-tags" label={t('detail.tags')}>
         <TagPicker id="d-tags" value={task.tagIds} onChange={(ids) => setTags.mutate(ids)} />
       </Field>
+
+      <ReminderEditor source={{ kind: 'task', id: task.id }} hasOrigin={mode !== 'none'} />
 
       <section aria-labelledby="d-checklist" className="space-y-2">
         <h3 id="d-checklist" className="text-sm font-medium">

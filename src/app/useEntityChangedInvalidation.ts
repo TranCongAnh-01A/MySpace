@@ -8,7 +8,9 @@ const KEYS_BY_ENTITY: Record<string, readonly (readonly string[])[]> = {
   area: [['areas']],
   inbox: [['inbox']],
   tag: [['tags']],
-  task: [['tasks'], ['task'], ['today'], ['project'], ['trash']],
+  task: [['tasks'], ['task'], ['today'], ['project'], ['trash'], ['calendar'], ['reminders']],
+  event: [['calendar'], ['today'], ['reminders']],
+  reminder: [['calendar'], ['today'], ['reminders'], ['task']],
   project: [['projects'], ['project'], ['today'], ['tasks'], ['trash']],
 };
 

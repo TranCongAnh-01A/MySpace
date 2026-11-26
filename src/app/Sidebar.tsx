@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import {
   CalendarCheck,
+  CalendarDays,
   CheckSquare,
   Inbox,
   PanelLeftClose,
@@ -12,6 +13,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useT } from '@/lib/i18n';
 import { useInboxOpen } from '@/modules/inbox/hooks';
+import { useMissedReminders } from '@/modules/reminders/hooks';
 import { useAreas } from '@/modules/tasks/hooks';
 import { cn } from '@/lib/utils';
 import { ProjectsNav } from './ProjectsNav';
@@ -69,13 +71,16 @@ function NavItem({
   );
 }
 
-// Spec 4.2: không tạo menu chết. v0.3: Today, Inbox, Tasks, nhóm Dự án, Thùng rác, Cài đặt.
+// Spec 4.2: không tạo menu chết. v0.4: Today, Inbox, Tasks, Calendar, nhóm Dự án, Thùng rác, Cài đặt.
 export function Sidebar() {
   const t = useT();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
   const { data } = useInboxOpen();
   const { data: areas = [] } = useAreas();
+  const { data: missed } = useMissedReminders();
+  const deferred = useUiStore((s) => s.missedDeferred);
+  const missedBadge = deferred ? (missed?.length ?? 0) : 0;
   const toggleLabel = collapsed ? t('nav.expand') : t('nav.collapse');
 
   return (
@@ -90,6 +95,7 @@ export function Sidebar() {
           to="/today"
           icon={<CalendarCheck />}
           label={t('nav.today')}
+          badge={missedBadge || undefined}
           collapsed={collapsed}
         />
         <NavItem
@@ -100,6 +106,12 @@ export function Sidebar() {
           collapsed={collapsed}
         />
         <NavItem to="/tasks" icon={<CheckSquare />} label={t('nav.tasks')} collapsed={collapsed} />
+        <NavItem
+          to="/calendar"
+          icon={<CalendarDays />}
+          label={t('nav.calendar')}
+          collapsed={collapsed}
+        />
         <ProjectsNav collapsed={collapsed} />
         {areas.length > 0 && (
           <div className="mt-3">
