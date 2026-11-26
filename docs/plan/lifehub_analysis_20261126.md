@@ -185,7 +185,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [ ] Search thêm Project; `dashboard_today` (Task hôm nay, quá hạn, 7 ngày tới, dự án đang chạy); `seed_demo_data` (GGStudio giả lập).
 - **Xong khi:** test tiến độ (0 Task → null; 26/40 → 65%), archive `Detach` không làm mất Task.
 
-#### 📍 Phase B4: Calendar + Reminders (v0.4)
+#### 📍 Phase B4: Calendar + Reminders (v0.4) ✅
 - **Việc:**
   - [ ] Events, `calendar_range` (Event + deadline, không tạo bản trùng), `task_schedule_block`.
   - [ ] Reminders: đặt theo offset hoặc giờ cố định; đổi deadline hoặc giờ Event thì tính lại `trigger_at`.

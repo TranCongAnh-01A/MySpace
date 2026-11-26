@@ -4,6 +4,7 @@ mod error;
 mod ids;
 mod logging;
 mod modules;
+mod reminders;
 mod sort_key;
 mod system;
 
@@ -20,6 +21,7 @@ use modules::settings::application as settings_app;
 use modules::settings::commands::SettingsState;
 use modules::settings::infrastructure::SqliteSettingsRepository;
 use modules::trash::application as trash_app;
+use reminders::scheduler::SchedulerHandle;
 use system::windows::{launched_hidden, show_main, MAIN, QUICK_CAPTURE};
 use system::{backup, AppDirs};
 
@@ -94,6 +96,9 @@ pub fn run() {
             app.manage(Db::new(conn));
             app.manage(dirs.clone());
 
+            // Tay cầm scheduler phải có trước khi dựng khay (ô "Tạm dừng thông báo").
+            let scheduler = SchedulerHandle::new();
+            app.manage(scheduler.clone());
             system::tray::init(app)?;
             system::shortcut::register_quick_capture(
                 app.handle(),
@@ -107,6 +112,10 @@ pub fn run() {
                 show_main(app.handle());
             }
             app.manage(SettingsState::new(settings));
+
+            // Có SettingsState rồi mới làm mới "Việc hôm nay" và chạy scheduler nhắc nhở.
+            system::tray::refresh(app.handle());
+            reminders::scheduler::start(app.handle(), scheduler);
             Ok(())
         })
         .on_window_event(|window, event| match event {
@@ -174,6 +183,18 @@ pub fn run() {
             modules::projects::commands::project_unarchive,
             modules::projects::commands::project_delete,
             modules::dashboard::commands::dashboard_today,
+            modules::calendar::commands::calendar_list,
+            modules::calendar::commands::calendar_range,
+            modules::calendar::commands::event_create,
+            modules::calendar::commands::event_update,
+            modules::calendar::commands::event_delete,
+            modules::calendar::commands::task_schedule_block,
+            reminders::commands::reminder_set,
+            reminders::commands::reminder_list,
+            reminders::commands::reminder_delete,
+            reminders::commands::reminder_missed_list,
+            reminders::commands::reminder_dismiss,
+            reminders::commands::reminder_dismiss_all,
             #[cfg(debug_assertions)]
             system::demo::seed_demo_data,
             system::commands::backup_now,
