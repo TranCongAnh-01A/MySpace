@@ -15,6 +15,7 @@ import { localToUtc, utcToLocalParts } from '@/lib/tz';
 import { cn } from '@/lib/utils';
 import { ProjectIcon } from '@/modules/projects/icons';
 import { ProgressBar } from '@/modules/projects/ProgressBar';
+import { NoteListItems } from '@/modules/notes/NoteListItems';
 import { useProjects } from '@/modules/projects/hooks';
 import { useMissedReminders } from '@/modules/reminders/hooks';
 import { CreateTaskDialog } from '@/modules/tasks/CreateTaskDialog';
@@ -272,6 +273,13 @@ function Body({
           empty={t('today.empty.upcoming')}
         >
           {rows(view.upcoming)}
+        </Widget>
+        <Widget
+          title={t('notes.recent')}
+          count={view.recentNotes.length}
+          empty={t('notes.recentEmpty')}
+        >
+          <NoteListItems notes={view.recentNotes} label={t('notes.recent')} />
         </Widget>
         <Widget
           title={t('today.w.projects')}

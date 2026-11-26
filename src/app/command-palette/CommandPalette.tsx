@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CheckSquare,
   Inbox,
+  NotebookText,
   Plus,
   Settings,
   Trash2,
@@ -16,6 +17,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { foldText } from '@/lib/format/text';
 import { useT, type TKey } from '@/lib/i18n';
 import { search } from '@/lib/ipc/commands';
+import { useCreateNoteAndOpen } from '@/modules/notes/hooks';
 import { useProjects } from '@/modules/projects/hooks';
 import { ProjectIcon } from '@/modules/projects/icons';
 import { useUiStore } from '../ui-store';
@@ -40,12 +42,13 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   const setCreateTaskOpen = useUiStore((s) => s.setCreateTaskOpen);
   const setQuickAddOpen = useUiStore((s) => s.setQuickAddOpen);
   const setCreateProjectOpen = useUiStore((s) => s.setCreateProjectOpen);
+  const createNote = useCreateNoteAndOpen();
   const { data: projects = [] } = useProjects(false);
   const [query, setQuery] = useState('');
   const debounced = useDebounced(query.trim(), 150);
   const { data: hits = [] } = useQuery({
-    queryKey: ['search', debounced, ['Task', 'Project', 'Inbox']],
-    queryFn: () => search(debounced, ['Task', 'Project', 'Inbox'], 20),
+    queryKey: ['search', debounced, ['Task', 'Project', 'Inbox', 'Note']],
+    queryFn: () => search(debounced, ['Task', 'Project', 'Inbox', 'Note'], 20),
     enabled: debounced.length > 0,
   });
 
@@ -55,11 +58,13 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     { id: 'inbox', label: 'nav.inbox', icon: Inbox, run: go('/inbox') },
     { id: 'tasks', label: 'nav.tasks', icon: CheckSquare, run: go('/tasks') },
     { id: 'calendar', label: 'nav.calendar', icon: CalendarDays, run: go('/calendar') },
+    { id: 'notes', label: 'nav.notes', icon: NotebookText, run: go('/notes') },
     { id: 'trash', label: 'nav.trash', icon: Trash2, run: go('/trash') },
     { id: 'settings', label: 'nav.settings', icon: Settings, run: go('/settings') },
   ];
   const create: Cmd[] = [
     { id: 'new-task', label: 'palette.newTask', icon: Plus, run: () => setCreateTaskOpen(true) },
+    { id: 'new-note', label: 'palette.newNote', icon: Plus, run: () => createNote() },
     {
       id: 'new-project',
       label: 'palette.newProject',
@@ -82,6 +87,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
 
   const taskHits = hits.filter((h) => h.kind === 'Task');
   const inboxHits = hits.filter((h) => h.kind === 'Inbox');
+  const noteHits = hits.filter((h) => h.kind === 'Note');
   const projectHits = hits.filter((h) => h.kind === 'Project');
   const gotoProjects = projects.filter((p) => q && foldText(p.name).includes(q)).slice(0, 5);
   const groupCls =
@@ -147,6 +153,21 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
               >
                 <ProjectIcon icon={p.icon} color={p.color} />
                 <span className="truncate">{p.name}</span>
+              </Command.Item>
+            ))}
+          </Command.Group>
+        )}
+        {noteHits.length > 0 && (
+          <Command.Group heading={t('palette.notes')} className={groupCls}>
+            {noteHits.map((h) => (
+              <Command.Item
+                key={`n-${h.id}`}
+                value={`note-${h.id}`}
+                onSelect={run(() => void navigate(`/notes/${h.id}`))}
+                className={itemCls}
+              >
+                <NotebookText aria-hidden />
+                <span className="truncate">{h.title}</span>
               </Command.Item>
             ))}
           </Command.Group>

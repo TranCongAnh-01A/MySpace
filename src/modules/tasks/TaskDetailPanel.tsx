@@ -31,6 +31,7 @@ import type {
 import { localToUtc, todayIn, utcToLocalParts } from '@/lib/tz';
 import { cn } from '@/lib/utils';
 import { ReminderEditor } from '@/modules/reminders/ReminderEditor';
+import { TaskNotesSection } from '@/modules/notes/TaskNotesSection';
 import { Checklist } from './Checklist';
 import { dateToStr, strToDate } from './dateInput';
 import { dueDay, type DateCtx } from './dates';
@@ -139,7 +140,7 @@ export function OptionalDate({
 function PanelBody({ detail, ctx }: { detail: TaskDetail; ctx: DateCtx }) {
   const t = useT();
   const qc = useQueryClient();
-  const { task, checklist } = detail;
+  const { task, checklist, noteIds } = detail;
   const { data: areas = [] } = useAreas();
   const { data: activeProjects = [] } = useProjects(false);
   const { data: archivedProjects = [] } = useProjects(true);
@@ -427,6 +428,8 @@ function PanelBody({ detail, ctx }: { detail: TaskDetail; ctx: DateCtx }) {
         </h3>
         <Checklist taskId={task.id} items={checklist} />
       </section>
+
+      <TaskNotesSection taskId={task.id} noteIds={noteIds} />
 
       <dl className="space-y-0.5 border-t border-border pt-3 text-xs text-muted">
         <div className="flex gap-2">

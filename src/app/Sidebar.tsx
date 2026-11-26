@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CheckSquare,
   Inbox,
+  NotebookText,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
@@ -71,7 +72,7 @@ function NavItem({
   );
 }
 
-// Spec 4.2: không tạo menu chết. v0.4: Today, Inbox, Tasks, Calendar, nhóm Dự án, Thùng rác, Cài đặt.
+// Spec 4.2: không tạo menu chết. v0.5: Today, Inbox, Tasks, Calendar, Notes, nhóm Dự án, Thùng rác, Cài đặt.
 export function Sidebar() {
   const t = useT();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
@@ -112,6 +113,7 @@ export function Sidebar() {
           label={t('nav.calendar')}
           collapsed={collapsed}
         />
+        <NavItem to="/notes" icon={<NotebookText />} label={t('nav.notes')} collapsed={collapsed} />
         <ProjectsNav collapsed={collapsed} />
         {areas.length > 0 && (
           <div className="mt-3">

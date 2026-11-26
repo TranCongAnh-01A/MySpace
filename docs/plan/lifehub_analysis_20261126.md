@@ -230,7 +230,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [x] Thêm lịch trình vào Dashboard; xử lý event `navigate`.
 - **Xong khi:** đi trọn spec 5.2 bước 4–5 (bằng mock); kéo thả cập nhật đúng loại bản ghi.
 
-#### 📍 Phase C5: Notes (v0.5)
+#### 📍 Phase C5: Notes (v0.5) ✅
 - **Việc:**
   - [ ] Tiptap: heading, định dạng, danh sách, checklist, slash command, code block có highlight; chặn HTML thô và làm sạch khi dán.
   - [ ] Auto save debounce 1 giây, lưu khi đóng note hoặc đóng app, hiện trạng thái lưu, xử lý `CONFLICT`.

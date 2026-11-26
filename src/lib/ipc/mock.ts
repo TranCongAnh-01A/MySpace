@@ -18,6 +18,11 @@ import type {
   EventPatch,
   MissedReminder,
   Navigate,
+  Note,
+  NoteCreate,
+  NoteFilter,
+  NoteSaveResult,
+  NoteSummary,
   Priority,
   Project,
   ProjectCreate,
@@ -47,6 +52,14 @@ import type {
   TrashKind,
   Weekday,
 } from './contract';
+import {
+  EMPTY_DOC,
+  MAX_TITLE_LENGTH,
+  excerptOf,
+  extractSearchText,
+  paragraphDoc,
+  validateNoteContent,
+} from '@/modules/notes/editor/allowlist';
 import { addDays, localToUtc, todayIn, utcToLocalParts, weekdayOf } from '@/lib/tz';
 
 // Dữ liệu giả trong bộ nhớ, dùng khi chạy với VITE_IPC_MOCK=1 (không cần core Rust).
@@ -188,6 +201,24 @@ export function mockInboxConvertToTask(id: string, input: TaskCreate): Promise<T
     emit('inbox', [id]);
     emit('task', [task.id]);
     return viewTask(task);
+  });
+}
+
+export function mockInboxConvertToNote(id: string, input: NoteCreate): Promise<Note> {
+  return delay(() => {
+    const rec = liveInbox(id);
+    if (rec.status === 'Processed') fail('CONFLICT', 'Mục này đã được xử lý');
+    const note = createNoteInternal({
+      ...input,
+      title: input.title ?? rec.content.slice(0, 80),
+      contentJson: input.contentJson ?? paragraphDoc(rec.content),
+    });
+    rec.status = 'Processed';
+    rec.convertedNoteId = note.id;
+    rec.processedAt = new Date().toISOString();
+    emit('inbox', [id]);
+    emit('note', [note.id]);
+    return pubNote(note);
   });
 }
 
@@ -684,7 +715,7 @@ export function mockTaskGet(id: string): Promise<TaskDetail> {
         .filter((c) => c.taskId === id)
         .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
         .map((c) => ({ ...c })),
-      noteIds: [],
+      noteIds: notes.filter((n) => !n.deletedAt && n.taskIds.includes(id)).map((n) => n.id),
       reminders: remindersOf({ taskId: id }),
     };
   });
@@ -843,6 +874,15 @@ export function mockTrashList(): Promise<TrashItem[]> {
           deletedAt: p.deletedAt ?? '',
           purgeAt: purge(p.deletedAt ?? ''),
         })),
+      ...notes
+        .filter((n) => n.deletedAt && !notesDeletedWithProject(n))
+        .map((n): TrashItem => ({
+          kind: 'Note',
+          id: n.id,
+          title: n.title,
+          deletedAt: n.deletedAt ?? '',
+          purgeAt: purge(n.deletedAt ?? ''),
+        })),
       ...inbox
         .filter((i) => i.deletedAt)
         .map((i): TrashItem => ({
@@ -871,9 +911,20 @@ export function mockTrashRestore(kind: TrashKind, id: string): Promise<void> {
       tasks.forEach((t) => {
         if (t.projectId === id && t.deletedAt === stamp) delete t.deletedAt;
       });
+      notes.forEach((n) => {
+        if (n.projectId === id && n.deletedAt === stamp) delete n.deletedAt;
+      });
       delete p.deletedAt;
       emit('project', [id]);
       emit('task');
+      emit('note');
+      return;
+    }
+    if (kind === 'Note') {
+      const n = notes.find((x) => x.id === id);
+      if (!n?.deletedAt) return fail('NOT_FOUND', 'Không tìm thấy trong Thùng rác');
+      delete n.deletedAt;
+      emit('note', [id]);
       return;
     }
     const rec = kind === 'Task' ? tasks.find((t) => t.id === id) : inbox.find((i) => i.id === id);
@@ -894,11 +945,13 @@ export function mockTrashEmpty(): Promise<void> {
     ensureSeed();
     const gone = new Set(projects.filter((p) => p.deletedAt).map((p) => p.id));
     tasks = tasks.filter((t) => !t.deletedAt && !(t.projectId && gone.has(t.projectId)));
+    notes = notes.filter((n) => !n.deletedAt && !(n.projectId && gone.has(n.projectId)));
     projects = projects.filter((p) => !p.deletedAt);
     for (let i = inbox.length - 1; i >= 0; i--) if (inbox[i]?.deletedAt) inbox.splice(i, 1);
     emit('task');
     emit('project');
     emit('inbox');
+    emit('note');
   });
 }
 
@@ -1079,6 +1132,17 @@ export function mockSearch(query: string, kinds?: SearchKind[], limit = 20): Pro
             snippet: i.content.slice(0, 80),
           }),
         );
+    if (!kinds || kinds.includes('Note'))
+      notes
+        .filter((n) => !n.deletedAt && match(`${n.title} ${n.searchText}`))
+        .forEach((n) =>
+          hits.push({
+            kind: 'Note',
+            id: n.id,
+            title: n.title || 'Không có tiêu đề',
+            snippet: excerptOf(n.searchText).slice(0, 80) || n.title,
+          }),
+        );
     return hits.slice(0, max);
   });
 }
@@ -1160,7 +1224,7 @@ export function mockProjectGetOverview(id: string): Promise<ProjectOverview> {
         review: n('Review'),
         done: n('Done'),
       },
-      recentNotes: [],
+      recentNotes: recentNotes(id),
     };
   });
 }
@@ -1252,6 +1316,11 @@ function retire(id: string, mode: ChildMode, field: 'archivedAt' | 'deletedAt') 
     tasks.forEach((t) => {
       if (t.projectId === id && !t.archivedAt && !t.deletedAt) t[field] = now;
     });
+    // Note không có archivedAt: chỉ xoá mềm khi xoá Project (B5 mục 2.2).
+    if (field === 'deletedAt')
+      notes.forEach((n) => {
+        if (n.projectId === id && !n.deletedAt) n.deletedAt = now;
+      });
   } else {
     tasks.forEach((t) => {
       if (t.projectId !== id) return;
@@ -1264,6 +1333,7 @@ function retire(id: string, mode: ChildMode, field: 'archivedAt' | 'deletedAt') 
   p.updatedAt = now;
   emit('project', [id]);
   emit('task');
+  emit('note');
 }
 
 export function mockProjectArchive(id: string, mode: ChildMode): Promise<void> {
@@ -1332,7 +1402,7 @@ export function mockDashboardToday(): Promise<TodayView> {
       activeProjects: sortedProjects()
         .filter((p) => !p.deletedAt && !p.archivedAt && p.status === 'Active')
         .map((p) => progressOf(p)),
-      recentNotes: [],
+      recentNotes: recentNotes(),
       schedule: rangeItems(today, today),
     };
   });
@@ -1457,6 +1527,7 @@ function seedDemoInternal() {
       }),
   );
   seedCalendarDemo(t0);
+  seedNotesDemo(gg.id);
 }
 
 export function mockSeedDemoData(): Promise<void> {
@@ -1467,6 +1538,7 @@ export function mockSeedDemoData(): Promise<void> {
     emit('area');
     emit('tag');
     emit('inbox');
+    emit('note');
   });
 }
 
@@ -1874,6 +1946,274 @@ function seedCalendarDemo(t0: string) {
   });
 }
 
+// ---- v0.5: notes (quy tắc B5 mục 2.2) ----
+type NoteRec = Note & { searchText: string };
+let notes: NoteRec[] = [];
+const pubNote = (n: NoteRec): Note => {
+  const { searchText: _s, ...rest } = n;
+  void _s;
+  return { ...rest, taskIds: [...n.taskIds], tagIds: [...n.tagIds] };
+};
+const liveNote = (id: string): NoteRec =>
+  notes.find((n) => n.id === id && !n.deletedAt) ?? fail('NOT_FOUND', 'Không tìm thấy ghi chú');
+const summaryOf = (n: NoteRec): NoteSummary => ({
+  id: n.id,
+  title: n.title,
+  ...(n.projectId ? { projectId: n.projectId } : {}),
+  updatedAt: n.updatedAt,
+  excerpt: excerptOf(n.searchText),
+});
+const notesDeletedWithProject = (n: NoteRec) =>
+  !!n.projectId && projects.some((p) => p.id === n.projectId && p.deletedAt === n.deletedAt);
+const archivedProjectIds = () => new Set(projects.filter((p) => p.archivedAt).map((p) => p.id));
+
+function recentNotes(projectId?: string): NoteSummary[] {
+  const archived = archivedProjectIds();
+  return notes
+    .filter(
+      (n) =>
+        !n.deletedAt &&
+        (projectId ? n.projectId === projectId : !(n.projectId && archived.has(n.projectId))),
+    )
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, 5)
+    .map(summaryOf);
+}
+
+function checkContent(contentJson: string) {
+  const v = validateNoteContent(contentJson);
+  if (!v.ok) fail('VALIDATION', `Nội dung ghi chú không hợp lệ (${v.reason})`);
+}
+function checkTitle(title: string) {
+  if (title.length > MAX_TITLE_LENGTH) fail('VALIDATION', 'Tiêu đề tối đa 300 ký tự');
+}
+
+function createNoteInternal(input: NoteCreate): NoteRec {
+  ensureSeed();
+  const title = input.title ?? '';
+  const contentJson = input.contentJson ?? EMPTY_DOC;
+  checkTitle(title);
+  checkContent(contentJson);
+  if (input.projectId) {
+    const p = projects.find((x) => x.id === input.projectId && !x.deletedAt);
+    if (!p || p.archivedAt) fail('VALIDATION', 'Project không tồn tại hoặc đã lưu trữ');
+  }
+  if (input.taskId) liveTask(input.taskId);
+  const now = nowIso();
+  const note: NoteRec = {
+    id: crypto.randomUUID(),
+    ...(input.projectId ? { projectId: input.projectId } : {}),
+    ...(input.parentNoteId ? { parentNoteId: input.parentNoteId } : {}),
+    title,
+    contentJson,
+    version: 1,
+    taskIds: input.taskId ? [input.taskId] : [],
+    tagIds: [...(input.tagIds ?? [])],
+    createdAt: now,
+    updatedAt: now,
+    searchText: extractSearchText(contentJson),
+  };
+  notes.push(note);
+  return note;
+}
+
+export function mockNoteList(filter: NoteFilter = {}): Promise<NoteSummary[]> {
+  return delay(() => {
+    ensureSeed();
+    const archived = archivedProjectIds();
+    const list = notes.filter((n) => {
+      if (!!n.deletedAt !== !!filter.trashed) return false;
+      if (filter.projectId) return n.projectId === filter.projectId;
+      if (n.projectId && archived.has(n.projectId)) return false;
+      if (filter.taskId && !n.taskIds.includes(filter.taskId)) return false;
+      if (filter.tagId && !n.tagIds.includes(filter.tagId)) return false;
+      return true;
+    });
+    const sort = filter.sort ?? 'Updated';
+    list.sort((a, b) =>
+      sort === 'Title'
+        ? a.title.localeCompare(b.title, 'vi')
+        : sort === 'Created'
+          ? b.createdAt.localeCompare(a.createdAt)
+          : b.updatedAt.localeCompare(a.updatedAt),
+    );
+    return list.map(summaryOf);
+  });
+}
+
+export function mockNoteGet(id: string): Promise<Note> {
+  return delay(() => {
+    ensureSeed();
+    return pubNote(liveNote(id));
+  });
+}
+
+export function mockNoteCreate(input: NoteCreate): Promise<Note> {
+  return delay(() => {
+    const n = createNoteInternal(input);
+    emit('note', [n.id]);
+    return pubNote(n);
+  });
+}
+
+export function mockNoteSave(
+  id: string,
+  title: string,
+  contentJson: string,
+  baseVersion: number,
+): Promise<NoteSaveResult> {
+  return delay(() => {
+    ensureSeed();
+    const n = liveNote(id);
+    if (n.version !== baseVersion) fail('CONFLICT', 'Ghi chú đã được sửa ở nơi khác');
+    checkTitle(title);
+    checkContent(contentJson);
+    const titleChanged = n.title !== title;
+    n.title = title;
+    n.contentJson = contentJson;
+    n.searchText = extractSearchText(contentJson);
+    n.version += 1;
+    n.updatedAt = nowIso();
+    // Chỉ phát event khi tiêu đề đổi (B5 mục 2.2).
+    if (titleChanged) emit('note', [id]);
+    else saveState();
+    return { version: n.version, updatedAt: n.updatedAt };
+  });
+}
+
+export function mockNoteMove(
+  id: string,
+  projectId?: string | null,
+  parentNoteId?: string | null,
+): Promise<Note> {
+  return delay(() => {
+    const n = liveNote(id);
+    if (projectId !== undefined) {
+      if (projectId === null) delete n.projectId;
+      else {
+        const p = projects.find((x) => x.id === projectId && !x.deletedAt);
+        if (!p || p.archivedAt) fail('VALIDATION', 'Project không tồn tại hoặc đã lưu trữ');
+        n.projectId = projectId;
+      }
+    }
+    if (parentNoteId !== undefined) {
+      if (parentNoteId === null) delete n.parentNoteId;
+      else n.parentNoteId = parentNoteId;
+    }
+    emit('note', [id]);
+    return pubNote(n);
+  });
+}
+
+export function mockNoteDelete(id: string): Promise<void> {
+  return delay(() => {
+    liveNote(id).deletedAt = nowIso();
+    emit('note', [id]);
+  });
+}
+
+export function mockNoteLinkTask(noteId: string, taskId: string): Promise<void> {
+  return delay(() => {
+    const n = liveNote(noteId);
+    liveTask(taskId);
+    if (!n.taskIds.includes(taskId)) n.taskIds.push(taskId);
+    emit('note', [noteId]);
+    emit('task', [taskId]);
+  });
+}
+
+export function mockNoteUnlinkTask(noteId: string, taskId: string): Promise<void> {
+  return delay(() => {
+    const n = liveNote(noteId);
+    n.taskIds = n.taskIds.filter((x) => x !== taskId);
+    emit('note', [noteId]);
+    emit('task', [taskId]);
+  });
+}
+
+export function mockNoteSetTags(noteId: string, tagIds: string[]): Promise<Note> {
+  return delay(() => {
+    const n = liveNote(noteId);
+    n.tagIds = [...tagIds];
+    emit('note', [noteId]);
+    return pubNote(n);
+  });
+}
+
+/** Cho thử `CONFLICT`: tăng version như thể có nơi khác vừa lưu. */
+export function bumpNoteVersion(id: string) {
+  const n = notes.find((x) => x.id === id);
+  if (!n) return;
+  n.version += 1;
+  saveState();
+}
+if (typeof window !== 'undefined' && import.meta.env.VITE_IPC_MOCK === '1')
+  (window as unknown as { __lifehubMock?: object }).__lifehubMock = { bumpNoteVersion };
+
+const docOf = (...blocks: object[]) => JSON.stringify({ type: 'doc', content: blocks });
+const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+const head = (level: number, text: string) => ({
+  type: 'heading',
+  attrs: { level },
+  content: [{ type: 'text', text }],
+});
+const li = (text: string) => ({ type: 'listItem', content: [para(text)] });
+const todo = (text: string, checked: boolean) => ({
+  type: 'taskItem',
+  attrs: { checked },
+  content: [para(text)],
+});
+
+function seedNotesDemo(projectId: string) {
+  const pay = tasks.find((t) => t.title === 'Payment API');
+  const mk = (title: string, content: string, offsetMin: number, taskId?: string) => {
+    const n = createNoteInternal({
+      title,
+      contentJson: content,
+      projectId,
+      ...(taskId ? { taskId } : {}),
+    });
+    n.updatedAt = new Date(Date.now() - offsetMin * 60_000).toISOString();
+  };
+  mk(
+    'Yêu cầu kỹ thuật Booking',
+    docOf(
+      head(1, 'Yêu cầu kỹ thuật Booking'),
+      para('Luồng đặt lịch cho khách hàng, gồm kiểm tra slot trống và giữ chỗ 10 phút.'),
+      head(2, 'Việc cần làm'),
+      { type: 'taskList', content: [todo('Thiết kế bảng slot', true), todo('API giữ chỗ', false)] },
+      head(2, 'Ví dụ'),
+      {
+        type: 'codeBlock',
+        attrs: { language: 'typescript' },
+        content: [{ type: 'text', text: 'const hold = await api.booking.hold(slotId, 600);' }],
+      },
+    ),
+    5,
+  );
+  mk(
+    'Ghi chú họp khách hàng',
+    docOf(
+      head(2, 'Họp khách hàng'),
+      { type: 'bulletList', content: [li('Demo bản đặt lịch'), li('Chốt phạm vi giai đoạn 1')] },
+      { type: 'blockquote', content: [para('Khách muốn thanh toán qua ví điện tử trước.')] },
+      { type: 'horizontalRule' },
+      para('Hẹn họp lại tuần sau.'),
+    ),
+    60,
+  );
+  mk(
+    'API thanh toán',
+    docOf(
+      head(2, 'API thanh toán'),
+      para('Tích hợp cổng thanh toán, xử lý webhook xác nhận giao dịch.'),
+      { type: 'orderedList', content: [li('Tạo đơn'), li('Nhận webhook'), li('Đối soát')] },
+    ),
+    24 * 60,
+    pay?.id,
+  );
+}
+
 // ---- lưu localStorage (chỉ khi chạy VITE_IPC_MOCK=1; `?resetMock=1` để xoá) ----
 const STORE_KEY = 'lifehub.mock';
 const persistent = import.meta.env.VITE_IPC_MOCK === '1' && typeof localStorage !== 'undefined';
@@ -1892,6 +2232,7 @@ function saveState() {
         projects,
         events,
         reminders,
+        notes,
         settings,
         keyCounter,
         previous: [...previousStatus],
@@ -1911,6 +2252,7 @@ type Stored = {
   projects: ProjectRec[];
   events?: EventRec[];
   reminders?: ReminderRec[];
+  notes?: NoteRec[];
   settings: AppSettings;
   keyCounter: number;
   previous: [string, TaskStatus][];
@@ -1936,6 +2278,7 @@ function bootstrap() {
       projects = d.projects;
       events = d.events ?? [];
       reminders = d.reminders ?? [];
+      notes = d.notes ?? [];
       settings = d.settings;
       keyCounter = d.keyCounter;
       previousStatus.clear();

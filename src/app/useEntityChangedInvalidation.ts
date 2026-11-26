@@ -11,7 +11,8 @@ const KEYS_BY_ENTITY: Record<string, readonly (readonly string[])[]> = {
   task: [['tasks'], ['task'], ['today'], ['project'], ['trash'], ['calendar'], ['reminders']],
   event: [['calendar'], ['today'], ['reminders']],
   reminder: [['calendar'], ['today'], ['reminders'], ['task']],
-  project: [['projects'], ['project'], ['today'], ['tasks'], ['trash']],
+  project: [['projects'], ['project'], ['today'], ['tasks'], ['trash'], ['notes'], ['note']],
+  note: [['notes'], ['note'], ['task'], ['project'], ['today'], ['trash']],
 };
 
 export function useEntityChangedInvalidation() {
