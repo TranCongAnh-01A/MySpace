@@ -21,10 +21,12 @@ import {
   backupList,
   backupNow,
   backupRestore,
+  errorCode,
   errorMessage,
   exportJson,
   openDataFolder,
   openLogFolder,
+  seedDemoData,
 } from '@/lib/ipc/commands';
 import type { Backup } from '@/lib/ipc/contract';
 import { formatBytes, formatDateTime } from '@/lib/format/date';
@@ -96,6 +98,17 @@ export function DataTab() {
       if (path) toast.success(t('data.exported', { path }));
     },
     onError: toastError,
+  });
+  const seed = useMutation({
+    mutationFn: seedDemoData,
+    onSuccess: () => {
+      toast.success(t('data.seeded'));
+      void qc.invalidateQueries();
+    },
+    onError: (e) => {
+      if (errorCode(e) === 'CONFLICT') toast.info(t('data.seedExists'));
+      else toastError(e);
+    },
   });
   const openData = useMutation({ mutationFn: openDataFolder, onError: toastError });
   const openLogs = useMutation({ mutationFn: openLogFolder, onError: toastError });
@@ -198,6 +211,25 @@ export function DataTab() {
         </div>
         {list}
       </Card>
+
+      {import.meta.env.DEV && (
+        <Card>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="mb-0">{t('data.seed')}</CardTitle>
+              <p className="text-muted">{t('data.seedHint')}</p>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={seed.isPending}
+              onClick={() => seed.mutate()}
+            >
+              {t('data.seed')}
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

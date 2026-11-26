@@ -9,8 +9,8 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 /**
- * Phím tắt trong app (spec 4.6): Ctrl+2 Inbox, Ctrl+3 Tasks, Ctrl+K palette, Ctrl+N tạo Task, Ctrl+, Settings, Ctrl+Q thoát.
- * Ctrl+1/4/5 chưa gán (module chưa có). Không bắt phím khi đang gõ, trừ Ctrl+Q.
+ * Phím tắt trong app (spec 4.6): Ctrl+1 Today, Ctrl+2 Inbox, Ctrl+3 Tasks, Ctrl+K palette, Ctrl+N tạo Task, Ctrl+, Settings, Ctrl+Q thoát.
+ * Ctrl+4/5 chưa gán (module chưa có). Không bắt phím khi đang gõ, trừ Ctrl+Q.
  */
 export function useAppShortcuts() {
   const navigate = useNavigate();
@@ -31,6 +31,9 @@ export function useAppShortcuts() {
       if (e.key.toLowerCase() === 'n') {
         e.preventDefault();
         useUiStore.getState().setCreateTaskOpen(true);
+      } else if (e.key === '1') {
+        e.preventDefault();
+        void navigate('/today');
       } else if (e.key === '3') {
         e.preventDefault();
         void navigate('/tasks');

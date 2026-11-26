@@ -34,6 +34,7 @@ import { Checklist } from './Checklist';
 import { dateToStr, strToDate } from './dateInput';
 import { dueDay, type DateCtx } from './dates';
 import { PRIORITIES, STATUSES } from './filters';
+import { useProjects } from '@/modules/projects/hooks';
 import { useAreas, useDateCtx, useSetStatus, useTask } from './hooks';
 import { TagPicker } from './TagPicker';
 
@@ -42,7 +43,7 @@ const WEEKDAYS: Weekday[] = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const FREQS: Frequency[] = ['Daily', 'Weekly', 'Monthly'];
 type DueMode = 'none' | 'date' | 'datetime';
 
-function Field({ id, label, children }: { id: string; label: string; children: ReactNode }) {
+export function Field({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
@@ -52,7 +53,7 @@ function Field({ id, label, children }: { id: string; label: string; children: R
 }
 
 /** Ô nhập có nháp cục bộ: lưu khi blur hoặc sau 800 ms không gõ. Lỗi CONFLICT không làm mất nội dung đang gõ. */
-function DraftField({
+export function DraftField({
   id,
   label,
   value,
@@ -97,7 +98,7 @@ function DraftField({
   );
 }
 
-function OptionalDate({
+export function OptionalDate({
   value,
   onChange,
   ctx,
@@ -139,6 +140,9 @@ function PanelBody({ detail, ctx }: { detail: TaskDetail; ctx: DateCtx }) {
   const qc = useQueryClient();
   const { task, checklist } = detail;
   const { data: areas = [] } = useAreas();
+  const { data: activeProjects = [] } = useProjects(false);
+  const { data: archivedProjects = [] } = useProjects(true);
+  const project = [...activeProjects, ...archivedProjects].find((p) => p.id === task.projectId);
   const setStatus = useSetStatus();
 
   const update = useMutation({
@@ -290,12 +294,46 @@ function PanelBody({ detail, ctx }: { detail: TaskDetail; ctx: DateCtx }) {
         />
       </div>
 
+      <Field id="d-project" label={t('proj.picker')}>
+        <Select
+          value={project ? project.id : NO_AREA}
+          onValueChange={(v) =>
+            save(
+              v === NO_AREA
+                ? { projectId: null }
+                : { projectId: v, ...(task.areaId ? { areaId: null } : {}) },
+            )
+          }
+        >
+          <SelectTrigger id="d-project" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_AREA}>{t('proj.none')}</SelectItem>
+            {[...activeProjects, ...archivedProjects].map((p) => (
+              <SelectItem
+                key={p.id}
+                value={p.id}
+                disabled={!!p.archivedAt && p.id !== task.projectId}
+              >
+                {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+
       <Field id="d-area" label={t('detail.area')}>
         <Select
-          value={task.areaId ?? NO_AREA}
+          value={project ? (project.areaId ?? NO_AREA) : (task.areaId ?? NO_AREA)}
           onValueChange={(v) => save({ areaId: v === NO_AREA ? null : v })}
+          disabled={!!project}
         >
-          <SelectTrigger id="d-area" className="w-full">
+          <SelectTrigger
+            id="d-area"
+            className="w-full"
+            title={project ? t('proj.areaFromProject') : undefined}
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

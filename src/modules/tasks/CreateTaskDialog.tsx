@@ -20,12 +20,14 @@ import {
 import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/ipc/commands';
 import type { Priority, TaskCreate } from '@/lib/ipc/contract';
+import { useProjects } from '@/modules/projects/hooks';
 import { useAreas, useDateCtx } from './hooks';
 import { PRIORITIES } from './filters';
 import { TagPicker } from './TagPicker';
-import { dateToStr } from './dateInput';
+import { dateToStr, strToDate } from './dateInput';
 
 const NO_AREA = '__none';
+const NO_PROJECT = '__none-project';
 
 function CreateForm({
   initialTitle,
@@ -36,7 +38,11 @@ function CreateForm({
   onCancel,
   error,
   pending,
+  defaultProjectId,
+  defaultDueDate,
 }: {
+  defaultProjectId?: string | undefined;
+  defaultDueDate?: string | undefined;
   initialTitle: string;
   submitLabel: string;
   title: string;
@@ -49,8 +55,13 @@ function CreateForm({
   const t = useT();
   const ctx = useDateCtx();
   const { data: areas = [] } = useAreas();
+  const { data: projects = [] } = useProjects(false);
   const [name, setName] = useState(initialTitle);
-  const [due, setDue] = useState<Date | undefined>();
+  const [due, setDue] = useState<Date | undefined>(
+    defaultDueDate ? strToDate(defaultDueDate) : undefined,
+  );
+  const [projectId, setProjectId] = useState(defaultProjectId ?? NO_PROJECT);
+  const project = projects.find((p) => p.id === projectId);
   const [priority, setPriority] = useState<Priority>('Medium');
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [areaId, setAreaId] = useState(NO_AREA);
@@ -62,7 +73,7 @@ function CreateForm({
       priority,
       ...(due ? { dueDate: dateToStr(due) } : {}),
       ...(tagIds.length ? { tagIds } : {}),
-      ...(areaId !== NO_AREA ? { areaId } : {}),
+      ...(project ? { projectId: project.id } : areaId !== NO_AREA ? { areaId } : {}),
     });
   }
 
@@ -111,9 +122,33 @@ function CreateForm({
           </div>
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="create-project">{t('proj.picker')}</Label>
+          <Select value={project ? projectId : NO_PROJECT} onValueChange={setProjectId}>
+            <SelectTrigger id="create-project" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_PROJECT}>{t('proj.none')}</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="create-area">{t('detail.area')}</Label>
-          <Select value={areaId} onValueChange={setAreaId}>
-            <SelectTrigger id="create-area" className="w-full">
+          <Select
+            value={project ? (project.areaId ?? NO_AREA) : areaId}
+            onValueChange={setAreaId}
+            disabled={!!project}
+          >
+            <SelectTrigger
+              id="create-area"
+              className="w-full"
+              title={project ? t('proj.areaFromProject') : undefined}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -158,6 +193,8 @@ type Props = {
   onSubmit: (input: TaskCreate) => void;
   error?: unknown;
   pending?: boolean;
+  defaultProjectId?: string | undefined;
+  defaultDueDate?: string | undefined;
 };
 
 /** Dialog tạo Task (dùng cho Ctrl+N, nút "+" và "Chuyển Inbox thành Task"). Form mount lại mỗi lần mở. */
@@ -171,6 +208,8 @@ export function CreateTaskDialog({
   onSubmit,
   error,
   pending = false,
+  defaultProjectId,
+  defaultDueDate,
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -184,6 +223,8 @@ export function CreateTaskDialog({
           onCancel={() => onOpenChange(false)}
           error={error}
           pending={pending}
+          defaultProjectId={defaultProjectId}
+          defaultDueDate={defaultDueDate}
         />
       </DialogContent>
     </Dialog>

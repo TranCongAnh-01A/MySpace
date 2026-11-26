@@ -3,7 +3,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Check, ListChecks } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useT } from '@/lib/i18n';
-import type { Tag, Task } from '@/lib/ipc/contract';
+import type { Project, Tag, Task } from '@/lib/ipc/contract';
+import { ProjectIcon } from '@/modules/projects/icons';
 import { cn } from '@/lib/utils';
 import { dueInfo, type DateCtx } from './dates';
 import { useDeleteTask, useSetStatus } from './hooks';
@@ -18,10 +19,12 @@ function TaskRow({
   active,
   selected,
   tagsById,
+  project,
   ctx,
   onOpen,
   onToggle,
 }: {
+  project?: Project | undefined;
   task: Task;
   index: number;
   active: boolean;
@@ -83,6 +86,15 @@ function TaskRow({
             {task.checklistDone}/{task.checklistTotal}
           </span>
         )}
+        {project && (
+          <span
+            className="inline-flex max-w-36 shrink-0 items-center gap-1 text-xs text-muted"
+            title={project.name}
+          >
+            <ProjectIcon icon={project.icon} color={project.color} className="size-3" />
+            <span className="truncate">{project.name}</span>
+          </span>
+        )}
         {task.tagIds.slice(0, 2).map((id) => {
           const tag = tagsById.get(id);
           return tag ? <Badge key={id}>{tag.name}</Badge> : null;
@@ -112,10 +124,13 @@ type Props = {
   ctx: DateCtx;
   openId: string | undefined;
   onOpen: (id: string) => void;
+  projectsById?: Map<string, Project>;
+  /** Đang ở trang Project: không cần nhãn tên dự án. */
+  hideProject?: boolean;
 };
 
 /** Danh sách ảo hoá. ↑/↓ chọn dòng, Enter mở panel, Space đổi Done, Delete xoá (hoàn tác 5 giây). */
-export function TaskList({ tasks, tags, ctx, openId, onOpen }: Props) {
+export function TaskList({ tasks, tags, ctx, openId, onOpen, projectsById, hideProject }: Props) {
   const t = useT();
   const parentRef = useRef<HTMLDivElement>(null);
   const [cursor, setCursor] = useState(0);
@@ -187,6 +202,9 @@ export function TaskList({ tasks, tags, ctx, openId, onOpen }: Props) {
               active={task.id === openId}
               selected={v.index === cursor}
               tagsById={tagsById}
+              project={
+                !hideProject && task.projectId ? projectsById?.get(task.projectId) : undefined
+              }
               ctx={ctx}
               onOpen={() => {
                 setCursor(v.index);

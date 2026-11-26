@@ -3,10 +3,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { onEntityChanged } from '@/lib/ipc/events';
 
 /** Query key theo entity (analysis mục 3): settings → ['settings'], area → ['areas'], inbox → ['inbox', ...]. */
-const KEY_BY_ENTITY: Record<string, readonly string[]> = {
-  settings: ['settings'],
-  area: ['areas'],
-  inbox: ['inbox'],
+const KEYS_BY_ENTITY: Record<string, readonly (readonly string[])[]> = {
+  settings: [['settings'], ['today']],
+  area: [['areas']],
+  inbox: [['inbox']],
+  tag: [['tags']],
+  task: [['tasks'], ['task'], ['today'], ['project'], ['trash']],
+  project: [['projects'], ['project'], ['today'], ['tasks'], ['trash']],
 };
 
 export function useEntityChangedInvalidation() {
@@ -15,8 +18,7 @@ export function useEntityChangedInvalidation() {
     let unlisten: (() => void) | undefined;
     let disposed = false;
     void onEntityChanged((e) => {
-      const key = KEY_BY_ENTITY[e.entity];
-      if (key) void qc.invalidateQueries({ queryKey: key });
+      KEYS_BY_ENTITY[e.entity]?.forEach((queryKey) => void qc.invalidateQueries({ queryKey }));
     }).then((fn) => {
       if (disposed) fn();
       else unlisten = fn;

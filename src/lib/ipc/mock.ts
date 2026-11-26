@@ -10,7 +10,13 @@ import type {
   AreaPatch,
   Backup,
   ChecklistItem,
+  ChildMode,
   Priority,
+  Project,
+  ProjectCreate,
+  ProjectOverview,
+  ProjectPatch,
+  ProjectProgress,
   Recurrence,
   SearchHit,
   SearchKind,
@@ -25,6 +31,7 @@ import type {
   TaskPatch,
   TaskStatus,
   TaskStatusResult,
+  TodayView,
   TrashItem,
   TrashKind,
   Weekday,
@@ -57,6 +64,7 @@ export function subscribeMockEvents(handler: (e: EntityChanged) => void): () => 
   };
 }
 function emit(entity: string, ids: string[] = []) {
+  saveState();
   listeners.forEach((l) => l({ entity, ids }));
 }
 
@@ -493,6 +501,10 @@ function validateTask(t: {
     fail('VALIDATION', 'Thời lượng dự kiến từ 1 đến 10.080 phút');
   if (t.dueDate && t.dueAt) fail('VALIDATION', 'Chỉ chọn hạn theo ngày hoặc theo giờ');
   if (t.projectId && t.areaId) fail('VALIDATION', 'Task thuộc Project thì không chọn lĩnh vực');
+  if (t.projectId) {
+    const p = projects.find((x) => x.id === t.projectId && !x.deletedAt);
+    if (!p || p.archivedAt) fail('VALIDATION', 'Project không tồn tại hoặc đã lưu trữ');
+  }
   if (t.recurrence && !t.dueDate && !t.dueAt) fail('VALIDATION', 'Task lặp cần có hạn');
   const due = t.dueDate ?? (t.dueAt ? utcToLocalParts(t.dueAt, tzName()).date : undefined);
   if (t.startDate && due && t.startDate > due) fail('VALIDATION', 'Ngày bắt đầu phải trước hạn');
@@ -752,13 +764,22 @@ export function mockTrashList(): Promise<TrashItem[]> {
       new Date(new Date(iso).getTime() + days * 86_400_000).toISOString();
     const items: TrashItem[] = [
       ...tasks
-        .filter((t) => t.deletedAt)
+        .filter((t) => t.deletedAt && !deletedWithProject(t))
         .map((t): TrashItem => ({
           kind: 'Task',
           id: t.id,
           title: t.title,
           deletedAt: t.deletedAt ?? '',
           purgeAt: purge(t.deletedAt ?? ''),
+        })),
+      ...projects
+        .filter((p) => p.deletedAt)
+        .map((p): TrashItem => ({
+          kind: 'Project',
+          id: p.id,
+          title: p.name,
+          deletedAt: p.deletedAt ?? '',
+          purgeAt: purge(p.deletedAt ?? ''),
         })),
       ...inbox
         .filter((i) => i.deletedAt)
@@ -774,9 +795,25 @@ export function mockTrashList(): Promise<TrashItem[]> {
   });
 }
 
+/** Task bị xoá cùng lúc (cùng mốc) với Project của nó thì không hiện riêng trong Trash. */
+const deletedWithProject = (t: Task) =>
+  !!t.projectId && projects.some((p) => p.id === t.projectId && p.deletedAt === t.deletedAt);
+
 export function mockTrashRestore(kind: TrashKind, id: string): Promise<void> {
   return delay(() => {
     ensureSeed();
+    if (kind === 'Project') {
+      const p = projects.find((x) => x.id === id);
+      if (!p?.deletedAt) return fail('NOT_FOUND', 'Không tìm thấy trong Thùng rác');
+      const stamp = p.deletedAt;
+      tasks.forEach((t) => {
+        if (t.projectId === id && t.deletedAt === stamp) delete t.deletedAt;
+      });
+      delete p.deletedAt;
+      emit('project', [id]);
+      emit('task');
+      return;
+    }
     const rec = kind === 'Task' ? tasks.find((t) => t.id === id) : inbox.find((i) => i.id === id);
     if (!rec?.deletedAt) fail('NOT_FOUND', 'Không tìm thấy trong Thùng rác');
     delete rec?.deletedAt;
@@ -787,9 +824,12 @@ export function mockTrashRestore(kind: TrashKind, id: string): Promise<void> {
 export function mockTrashEmpty(): Promise<void> {
   return delay(() => {
     ensureSeed();
-    tasks = tasks.filter((t) => !t.deletedAt);
+    const gone = new Set(projects.filter((p) => p.deletedAt).map((p) => p.id));
+    tasks = tasks.filter((t) => !t.deletedAt && !(t.projectId && gone.has(t.projectId)));
+    projects = projects.filter((p) => !p.deletedAt);
     for (let i = inbox.length - 1; i >= 0; i--) if (inbox[i]?.deletedAt) inbox.splice(i, 1);
     emit('task');
+    emit('project');
     emit('inbox');
   });
 }
@@ -949,6 +989,17 @@ export function mockSearch(query: string, kinds?: SearchKind[], limit = 20): Pro
             snippet: t.description.slice(0, 80) || t.title,
           }),
         );
+    if (!kinds || kinds.includes('Project'))
+      projects
+        .filter((p) => !p.deletedAt && match(`${p.name} ${p.description}`))
+        .forEach((p) =>
+          hits.push({
+            kind: 'Project',
+            id: p.id,
+            title: p.name,
+            snippet: p.description.slice(0, 80) || p.name,
+          }),
+        );
     if (!kinds || kinds.includes('Inbox'))
       inbox
         .filter((i) => !i.deletedAt && i.status === 'Open' && match(i.content))
@@ -963,3 +1014,459 @@ export function mockSearch(query: string, kinds?: SearchKind[], limit = 20): Pro
     return hits.slice(0, max);
   });
 }
+
+// ================= v0.3: projects, dashboard, dữ liệu mẫu, lưu localStorage =================
+type ProjectRec = Project & { deletedAt?: string };
+let projects: ProjectRec[] = [];
+const pubProject = (p: ProjectRec): Project => {
+  const { deletedAt: _d, ...rest } = p;
+  void _d;
+  return { ...rest };
+};
+const liveProject = (id: string): ProjectRec =>
+  projects.find((p) => p.id === id && !p.deletedAt) ?? fail('NOT_FOUND', 'Không tìm thấy Project');
+const resortProjects = () => {
+  projects = projects.map((p, i) => ({ ...p, sortKey: String(i + 1).padStart(5, '0') }));
+};
+const sortedProjects = () => [...projects].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+function validateProject(p: {
+  name: string;
+  description?: string | undefined;
+  color?: string | undefined;
+  icon?: string | undefined;
+  startDate?: string | undefined;
+  targetDate?: string | undefined;
+  areaId?: string | undefined;
+}) {
+  const name = p.name.trim();
+  if (!name) fail('VALIDATION', 'Tên dự án không được để trống');
+  if (name.length > 100) fail('VALIDATION', 'Tên dự án tối đa 100 ký tự');
+  if ((p.description?.length ?? 0) > 20000) fail('VALIDATION', 'Mô tả tối đa 20.000 ký tự');
+  if (p.color && !/^#[0-9A-Fa-f]{6}$/.test(p.color)) fail('VALIDATION', 'Màu phải dạng #RRGGBB');
+  if (p.icon && !/^[a-z0-9-]{1,40}$/.test(p.icon)) fail('VALIDATION', 'Tên icon không hợp lệ');
+  if (p.startDate && p.targetDate && p.targetDate < p.startDate)
+    fail('VALIDATION', 'Ngày kết thúc không được trước ngày bắt đầu');
+  if (p.areaId && !areas.some((a) => a.id === p.areaId))
+    fail('VALIDATION', 'Lĩnh vực không tồn tại');
+  return name;
+}
+
+const activeChildren = (id: string) =>
+  tasks.filter((t) => t.projectId === id && !t.archivedAt && !t.deletedAt);
+
+function progressOf(p: Project): ProjectProgress {
+  const list = activeChildren(p.id);
+  const done = list.filter((t) => t.status === 'Done').length;
+  const total = list.length;
+  return {
+    projectId: p.id,
+    name: p.name,
+    ...(p.color ? { color: p.color } : {}),
+    done,
+    total,
+    ...(total > 0 ? { percent: Math.round((done * 100) / total) } : {}),
+  };
+}
+
+export function mockProjectList(archived?: boolean): Promise<Project[]> {
+  return delay(() =>
+    sortedProjects()
+      .filter((p) => !p.deletedAt && (archived ? !!p.archivedAt : !p.archivedAt))
+      .map(pubProject),
+  );
+}
+
+export function mockProjectGetOverview(id: string): Promise<ProjectOverview> {
+  return delay(() => {
+    ensureSeed();
+    const p = pubProject(liveProject(id));
+    const list = activeChildren(id);
+    const n = (s: TaskStatus) => list.filter((t) => t.status === s).length;
+    return {
+      project: p,
+      progress: progressOf(p),
+      counts: {
+        todo: n('Todo'),
+        inProgress: n('InProgress'),
+        review: n('Review'),
+        done: n('Done'),
+      },
+      recentNotes: [],
+    };
+  });
+}
+
+function createProjectInternal(input: ProjectCreate): ProjectRec {
+  const name = validateProject(input);
+  const now = nowIso();
+  const rec: ProjectRec = {
+    id: crypto.randomUUID(),
+    name,
+    description: input.description ?? '',
+    status: input.status ?? 'Active',
+    sortKey: '',
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    ...(input.areaId ? { areaId: input.areaId } : {}),
+    ...(input.color ? { color: input.color } : {}),
+    ...(input.icon ? { icon: input.icon } : {}),
+    ...(input.startDate ? { startDate: input.startDate } : {}),
+    ...(input.targetDate ? { targetDate: input.targetDate } : {}),
+  };
+  projects = [...projects, rec];
+  resortProjects();
+  return projects[projects.length - 1] ?? rec;
+}
+
+export function mockProjectCreate(input: ProjectCreate): Promise<Project> {
+  return delay(() => {
+    ensureSeed();
+    const rec = createProjectInternal(input);
+    emit('project', [rec.id]);
+    return pubProject(rec);
+  });
+}
+
+export function mockProjectUpdate(
+  id: string,
+  patch: ProjectPatch,
+  baseVersion: number,
+): Promise<Project> {
+  return delay(() => {
+    const p = liveProject(id);
+    if (p.version !== baseVersion) fail('CONFLICT', 'Dự án vừa được sửa ở nơi khác');
+    const next: ProjectRec = { ...p };
+    if (patch.name !== undefined) next.name = patch.name;
+    if (patch.description !== undefined) next.description = patch.description;
+    if (patch.status !== undefined) next.status = patch.status;
+    (['areaId', 'color', 'icon', 'startDate', 'targetDate'] as const).forEach((k) => {
+      const v = patch[k];
+      if (v === undefined) return;
+      if (v === null) delete next[k];
+      else next[k] = v;
+    });
+    next.name = validateProject(next);
+    Object.assign(p, next);
+    p.version += 1;
+    p.updatedAt = nowIso();
+    emit('project', [id]);
+    return pubProject(p);
+  });
+}
+
+export function mockProjectReorder(
+  id: string,
+  beforeId?: string,
+  afterId?: string,
+): Promise<Project> {
+  return delay(() => {
+    const moving = liveProject(id);
+    const rest = sortedProjects().filter((p) => p.id !== id);
+    let index = rest.length;
+    if (beforeId) index = rest.findIndex((p) => p.id === beforeId) + 1;
+    else if (afterId) index = rest.findIndex((p) => p.id === afterId);
+    rest.splice(Math.max(0, index), 0, moving);
+    projects = rest;
+    resortProjects();
+    emit('project', [id]);
+    return pubProject(liveProject(id));
+  });
+}
+
+/** Gán `archivedAt`/`deletedAt` bằng cùng một mốc `now` cho Project và các Task con (B3 mục 2.2). */
+function retire(id: string, mode: ChildMode, field: 'archivedAt' | 'deletedAt') {
+  ensureSeed();
+  const p = liveProject(id);
+  const now = nowIso();
+  if (mode === 'WithChildren') {
+    tasks.forEach((t) => {
+      if (t.projectId === id && !t.archivedAt && !t.deletedAt) t[field] = now;
+    });
+  } else {
+    tasks.forEach((t) => {
+      if (t.projectId !== id) return;
+      delete t.projectId;
+      if (!t.areaId && p.areaId) t.areaId = p.areaId;
+    });
+  }
+  p[field] = now;
+  p.version += 1;
+  p.updatedAt = now;
+  emit('project', [id]);
+  emit('task');
+}
+
+export function mockProjectArchive(id: string, mode: ChildMode): Promise<void> {
+  return delay(() => retire(id, mode, 'archivedAt'));
+}
+
+export function mockProjectDelete(id: string, mode: ChildMode): Promise<void> {
+  return delay(() => retire(id, mode, 'deletedAt'));
+}
+
+export function mockProjectUnarchive(id: string): Promise<void> {
+  return delay(() => {
+    ensureSeed();
+    const p = projects.find((x) => x.id === id && !x.deletedAt && x.archivedAt);
+    if (!p) return fail('NOT_FOUND', 'Không tìm thấy Project đã lưu trữ');
+    const stamp = p.archivedAt;
+    tasks.forEach((t) => {
+      if (t.projectId === id && t.archivedAt === stamp) delete t.archivedAt;
+    });
+    delete p.archivedAt;
+    p.version += 1;
+    p.updatedAt = nowIso();
+    emit('project', [id]);
+    emit('task');
+  });
+}
+
+export function mockDashboardToday(): Promise<TodayView> {
+  return delay(() => {
+    ensureSeed();
+    const today = todayStr();
+    const now = nowIso();
+    const archivedProjects = new Set(projects.filter((p) => p.archivedAt).map((p) => p.id));
+    const open = tasks.filter(
+      (t) =>
+        !t.deletedAt &&
+        !t.archivedAt &&
+        t.status !== 'Done' &&
+        !(t.projectId && archivedProjects.has(t.projectId)),
+    );
+    const byDue = (a: Task, b: Task) => dueKey(a).localeCompare(dueKey(b));
+    const todayList = open
+      .filter((t) => dayOf(t) === today)
+      .sort(
+        (a, b) =>
+          Number(!!b.dueAt) - Number(!!a.dueAt) ||
+          (a.dueAt ?? '').localeCompare(b.dueAt ?? '') ||
+          PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority],
+      );
+    const overdue = open
+      .filter((t) => (!!t.dueDate && t.dueDate < today) || (!!t.dueAt && t.dueAt < now))
+      .sort(byDue)
+      .slice(0, 50);
+    const upcoming = open
+      .filter((t) => {
+        const d = dayOf(t);
+        return !!d && d > today && d <= addDays(today, 7);
+      })
+      .sort(byDue)
+      .slice(0, 20);
+    return {
+      date: today,
+      today: todayList.map(viewTask),
+      overdue: overdue.map(viewTask),
+      upcoming: upcoming.map(viewTask),
+      activeProjects: sortedProjects()
+        .filter((p) => !p.deletedAt && !p.archivedAt && p.status === 'Active')
+        .map((p) => progressOf(p)),
+      recentNotes: [],
+    };
+  });
+}
+
+function seedDemoInternal() {
+  ensureSeed();
+  if (projects.some((p) => !p.deletedAt && p.name.includes('GGStudio')))
+    fail('CONFLICT', 'Đã có dữ liệu mẫu');
+  const t0 = todayStr();
+  const ensureArea = (name: string, color: string): Area => {
+    let area = areas.find((a) => a.name === name);
+    if (!area) {
+      area = { id: crypto.randomUUID(), name, color, sortKey: '' };
+      areas = [...areas, area];
+      resort();
+      area = areas[areas.length - 1] ?? area;
+    }
+    return area;
+  };
+  const work = ensureArea('Công việc', '#5B9BD5');
+  const study = ensureArea('Học tập', '#A08BDF');
+  const tagId = (name: string, color: string) => {
+    let tag = tags.find((x) => x.name === name);
+    if (!tag) {
+      tag = { id: crypto.randomUUID(), name, color };
+      tags.push(tag);
+    }
+    return tag.id;
+  };
+  const backend = tagId('backend', '#5B9BD5');
+  const frontend = tagId('frontend', '#63BB91');
+  const urgent = tagId('urgent', '#E57373');
+
+  const gg = createProjectInternal({
+    name: 'GGStudio — Gaming Services Marketplace',
+    description: 'Sàn dịch vụ game: đặt lịch, thanh toán, quản trị.',
+    areaId: work.id,
+    status: 'Active',
+    color: '#A08BDF',
+    icon: 'gamepad-2',
+    startDate: addDays(t0, -60),
+    targetDate: addDays(t0, 45),
+  });
+  const mk = (over: Partial<Task> & { title: string }) => tasks.push(rawTask(over));
+  const doneNames = ['Authentication', 'Database', 'Landing page'];
+  for (let i = 0; i < 26; i++)
+    mk({
+      title: doneNames[i] ?? `Hoàn thiện module ${i - 2}`,
+      status: 'Done',
+      completedAt: nowIso(),
+      projectId: gg.id,
+      priority: i % 4 === 0 ? 'High' : 'Medium',
+      tagIds: i % 2 === 0 ? [backend] : [frontend],
+    });
+  const g = { projectId: gg.id };
+  mk({
+    title: 'Booking system',
+    status: 'InProgress',
+    ...g,
+    priority: 'High',
+    dueDate: addDays(t0, 5),
+    tagIds: [backend],
+  });
+  mk({
+    title: 'Admin UI',
+    status: 'InProgress',
+    ...g,
+    dueDate: addDays(t0, 3),
+    tagIds: [frontend],
+  });
+  mk({
+    title: 'Payment API',
+    ...g,
+    priority: 'Urgent',
+    dueDate: addDays(t0, 7),
+    tagIds: [backend, urgent],
+  });
+  mk({ title: 'Email service', ...g, dueDate: addDays(t0, 9), tagIds: [backend] });
+  mk({ title: 'SEO', ...g, priority: 'Low', dueDate: addDays(t0, 14), tagIds: [frontend] });
+  const rest: [string, TaskStatus, number][] = [
+    ['Viết tài liệu API', 'Todo', -3],
+    ['Sửa lỗi đăng nhập Google', 'Todo', -1],
+    ['Thiết kế trang hồ sơ', 'Todo', 0],
+    ['Kiểm thử thanh toán', 'Todo', 0],
+    ['Tối ưu tốc độ tải trang', 'Todo', 0],
+    ['Review code đặt lịch', 'Review', 2],
+    ['Review giao diện Admin', 'Review', 4],
+    ['Chuẩn bị bản demo', 'Review', 11],
+    ['Triển khai bản thử', 'Review', 14],
+  ];
+  rest.forEach(([title, status, off]) => mk({ title, status, ...g, dueDate: addDays(t0, off) }));
+  const thesis = createProjectInternal({
+    name: 'Đồ án tốt nghiệp',
+    areaId: study.id,
+    status: 'Active',
+    color: '#63BB91',
+    icon: 'graduation-cap',
+  });
+  [
+    'Chọn đề tài',
+    'Viết đề cương',
+    'Khảo sát tài liệu',
+    'Cài đặt thử nghiệm',
+    'Viết chương 1',
+    'Làm slide',
+  ].forEach((title, i) =>
+    mk({
+      title,
+      projectId: thesis.id,
+      status: i < 2 ? 'Done' : 'Todo',
+      ...(i < 2 ? { completedAt: nowIso() } : { dueDate: addDays(t0, 5 + i * 3) }),
+    }),
+  );
+  ['Đặt vé tàu về quê', 'Xem lại hợp đồng thuê nhà', 'Ý tưởng app theo dõi chi tiêu'].forEach(
+    (content, i) =>
+      inbox.unshift({
+        id: crypto.randomUUID(),
+        content,
+        status: 'Open',
+        createdAt: new Date(Date.now() - i * 3_600_000).toISOString(),
+      }),
+  );
+}
+
+export function mockSeedDemoData(): Promise<void> {
+  return delay(() => {
+    seedDemoInternal();
+    emit('project');
+    emit('task');
+    emit('area');
+    emit('tag');
+    emit('inbox');
+  });
+}
+
+// ---- lưu localStorage (chỉ khi chạy VITE_IPC_MOCK=1; `?resetMock=1` để xoá) ----
+const STORE_KEY = 'lifehub.mock';
+const persistent = import.meta.env.VITE_IPC_MOCK === '1' && typeof localStorage !== 'undefined';
+
+function saveState() {
+  if (!persistent) return;
+  try {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        areas,
+        tags,
+        tasks,
+        checklists,
+        inbox,
+        projects,
+        settings,
+        keyCounter,
+        previous: [...previousStatus],
+      }),
+    );
+  } catch {
+    /* bỏ qua: hết dung lượng hoặc bị chặn */
+  }
+}
+
+type Stored = {
+  areas: Area[];
+  tags: Tag[];
+  tasks: Task[];
+  checklists: ChecklistItem[];
+  inbox: InboxRec[];
+  projects: ProjectRec[];
+  settings: AppSettings;
+  keyCounter: number;
+  previous: [string, TaskStatus][];
+};
+
+function bootstrap() {
+  if (!persistent) return;
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('resetMock') === '1') {
+      localStorage.removeItem(STORE_KEY);
+      url.searchParams.delete('resetMock');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw) as Stored;
+      areas = d.areas;
+      tags = d.tags;
+      tasks = d.tasks;
+      checklists = d.checklists;
+      inbox.splice(0, inbox.length, ...d.inbox);
+      projects = d.projects;
+      settings = d.settings;
+      keyCounter = d.keyCounter;
+      previousStatus.clear();
+      d.previous.forEach(([k, v]) => previousStatus.set(k, v));
+      seeded = true;
+      return;
+    }
+    seedDemoInternal();
+    saveState();
+  } catch {
+    /* dữ liệu lưu hỏng: dùng dữ liệu khởi tạo */
+  }
+}
+bootstrap();

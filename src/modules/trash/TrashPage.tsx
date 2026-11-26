@@ -34,6 +34,9 @@ export function TrashPage() {
     void qc.invalidateQueries({ queryKey: ['trash'] });
     void qc.invalidateQueries({ queryKey: ['tasks'] });
     void qc.invalidateQueries({ queryKey: ['inbox'] });
+    void qc.invalidateQueries({ queryKey: ['projects'] });
+    void qc.invalidateQueries({ queryKey: ['project'] });
+    void qc.invalidateQueries({ queryKey: ['today'] });
   };
   const toastError = (e: unknown) =>
     toast.error(t('common.error'), { description: errorMessage(e) });

@@ -2,11 +2,21 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Command } from 'cmdk';
-import { CheckSquare, Inbox, Plus, Settings, Trash2, type LucideIcon } from 'lucide-react';
+import {
+  CalendarCheck,
+  CheckSquare,
+  Inbox,
+  Plus,
+  Settings,
+  Trash2,
+  type LucideIcon,
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { foldText } from '@/lib/format/text';
 import { useT, type TKey } from '@/lib/i18n';
 import { search } from '@/lib/ipc/commands';
+import { useProjects } from '@/modules/projects/hooks';
+import { ProjectIcon } from '@/modules/projects/icons';
 import { useUiStore } from '../ui-store';
 
 const itemCls =
@@ -28,16 +38,19 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const setCreateTaskOpen = useUiStore((s) => s.setCreateTaskOpen);
   const setQuickAddOpen = useUiStore((s) => s.setQuickAddOpen);
+  const setCreateProjectOpen = useUiStore((s) => s.setCreateProjectOpen);
+  const { data: projects = [] } = useProjects(false);
   const [query, setQuery] = useState('');
   const debounced = useDebounced(query.trim(), 150);
   const { data: hits = [] } = useQuery({
-    queryKey: ['search', debounced, ['Task', 'Inbox']],
-    queryFn: () => search(debounced, ['Task', 'Inbox'], 20),
+    queryKey: ['search', debounced, ['Task', 'Project', 'Inbox']],
+    queryFn: () => search(debounced, ['Task', 'Project', 'Inbox'], 20),
     enabled: debounced.length > 0,
   });
 
   const go = (to: string) => () => void navigate(to);
   const goto: Cmd[] = [
+    { id: 'today', label: 'nav.today', icon: CalendarCheck, run: go('/today') },
     { id: 'inbox', label: 'nav.inbox', icon: Inbox, run: go('/inbox') },
     { id: 'tasks', label: 'nav.tasks', icon: CheckSquare, run: go('/tasks') },
     { id: 'trash', label: 'nav.trash', icon: Trash2, run: go('/trash') },
@@ -45,6 +58,12 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   ];
   const create: Cmd[] = [
     { id: 'new-task', label: 'palette.newTask', icon: Plus, run: () => setCreateTaskOpen(true) },
+    {
+      id: 'new-project',
+      label: 'palette.newProject',
+      icon: Plus,
+      run: () => setCreateProjectOpen(true),
+    },
     {
       id: 'new-inbox',
       label: 'palette.captureInbox',
@@ -61,6 +80,10 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
 
   const taskHits = hits.filter((h) => h.kind === 'Task');
   const inboxHits = hits.filter((h) => h.kind === 'Inbox');
+  const projectHits = hits.filter((h) => h.kind === 'Project');
+  const gotoProjects = projects.filter((p) => q && foldText(p.name).includes(q)).slice(0, 5);
+  const groupCls =
+    '[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-muted';
 
   return (
     <Command shouldFilter={false} label={t('palette.title')} loop>
@@ -89,6 +112,39 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
               >
                 <CheckSquare aria-hidden />
                 <span className="truncate">{h.title}</span>
+              </Command.Item>
+            ))}
+          </Command.Group>
+        )}
+        {projectHits.length > 0 && (
+          <Command.Group heading={t('palette.projects')} className={groupCls}>
+            {projectHits.map((h) => (
+              <Command.Item
+                key={`p-${h.id}`}
+                value={`project-${h.id}`}
+                onSelect={run(() => void navigate(`/projects/${h.id}`))}
+                className={itemCls}
+              >
+                <ProjectIcon
+                  icon={projects.find((p) => p.id === h.id)?.icon}
+                  color={projects.find((p) => p.id === h.id)?.color}
+                />
+                <span className="truncate">{h.title}</span>
+              </Command.Item>
+            ))}
+          </Command.Group>
+        )}
+        {gotoProjects.length > 0 && (
+          <Command.Group heading={t('palette.gotoProject')} className={groupCls}>
+            {gotoProjects.map((p) => (
+              <Command.Item
+                key={`gp-${p.id}`}
+                value={`goproject-${p.id}`}
+                onSelect={run(() => void navigate(`/projects/${p.id}`))}
+                className={itemCls}
+              >
+                <ProjectIcon icon={p.icon} color={p.color} />
+                <span className="truncate">{p.name}</span>
               </Command.Item>
             ))}
           </Command.Group>
@@ -152,7 +208,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Command Palette (`Ctrl+K`): tìm Task/Inbox qua `search`, kèm nhóm "Đi tới" và "Tạo". */
+/** Command Palette (`Ctrl+K`): tìm Task/Dự án/Inbox qua `search`, kèm nhóm "Đi tới" và "Tạo". */
 export function CommandPalette() {
   const t = useT();
   const open = useUiStore((s) => s.paletteOpen);
