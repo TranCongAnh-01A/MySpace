@@ -3,7 +3,7 @@
 > File này là **mục lục trung tâm**, giúp AI (và người mới) nắm nhanh toàn bộ cấu trúc tài liệu của dự án.
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 02:05
+**Cập nhật lần cuối:** 2026-11-26 02:20
 
 ---
 
@@ -27,6 +27,8 @@
 | `lifehub_analysis_20261126.md` | 2026-11-26 | Phân tích kế hoạch: phiên A–D, phase, hợp đồng IPC | [./plan/lifehub_analysis_20261126.md](./plan/lifehub_analysis_20261126.md) |
 | `lifehub_schema_20261126.md` | 2026-11-26 | Schema SQL MVP (migration 001) | [./plan/lifehub_schema_20261126.md](./plan/lifehub_schema_20261126.md) |
 | `lifehub_A-khung_impl_20261126.md` | 2026-11-26 | Kế hoạch triển khai phiên A (khung + luồng mỏng) | [./plan/lifehub_A-khung_impl_20261126.md](./plan/lifehub_A-khung_impl_20261126.md) |
+| `lifehub_B1_impl_20261126.md` | 2026-11-26 | Kế hoạch triển khai B1 + hợp đồng IPC v0.1 | [./plan/lifehub_B1_impl_20261126.md](./plan/lifehub_B1_impl_20261126.md) |
+| `lifehub_C1_impl_20261126.md` | 2026-11-26 | Kế hoạch triển khai C1 (design system, vỏ app, Settings) | [./plan/lifehub_C1_impl_20261126.md](./plan/lifehub_C1_impl_20261126.md) |
 | `log_20261126.md` | 2026-11-26 | Nhật ký phiên làm việc (phiên A) | [./log/log_20261126.md](./log/log_20261126.md) |
 
 ## 3b. Quyết định kiến trúc (docs/adr/, tên cố định)
@@ -60,6 +62,8 @@ docs/
 │   ├── lifehub_analysis_20261126.md
 │   ├── lifehub_schema_20261126.md
 │   ├── lifehub_A-khung_impl_20261126.md
+│   ├── lifehub_B1_impl_20261126.md
+│   ├── lifehub_C1_impl_20261126.md
 │   ├── TEMPLATE_analysis.md
 │   ├── TEMPLATE_impl.md
 │   └── TEMPLATE_plan.md
