@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
-import { Inbox, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react';
+import { Link, NavLink } from 'react-router-dom';
+import { CheckSquare, Inbox, PanelLeftClose, PanelLeftOpen, Settings, Trash2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useT } from '@/lib/i18n';
 import { useInboxOpen } from '@/modules/inbox/hooks';
+import { useAreas } from '@/modules/tasks/hooks';
 import { cn } from '@/lib/utils';
 import { useUiStore } from './ui-store';
 
@@ -65,6 +66,7 @@ export function Sidebar() {
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
   const { data } = useInboxOpen();
+  const { data: areas = [] } = useAreas();
   const toggleLabel = collapsed ? t('nav.expand') : t('nav.collapse');
 
   return (
@@ -82,7 +84,38 @@ export function Sidebar() {
           badge={data?.length || undefined}
           collapsed={collapsed}
         />
-        <div className="mt-auto">
+        <NavItem to="/tasks" icon={<CheckSquare />} label={t('nav.tasks')} collapsed={collapsed} />
+        {areas.length > 0 && (
+          <div className="mt-3">
+            {!collapsed && (
+              <h2 className="px-2.5 pb-1 text-xs font-medium text-muted">{t('nav.areas')}</h2>
+            )}
+            <ul className="space-y-0.5">
+              {areas.map((a) => (
+                <li key={a.id}>
+                  <Link
+                    to={`/tasks?area=${a.id}`}
+                    aria-label={collapsed ? a.name : undefined}
+                    title={collapsed ? a.name : undefined}
+                    className={cn(
+                      'flex h-8 items-center gap-3 rounded-md px-2.5 text-text hover:bg-border/60',
+                      collapsed && 'justify-center px-0',
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className="size-3 shrink-0 rounded-full border border-border"
+                      style={{ background: a.color ?? 'transparent' }}
+                    />
+                    {!collapsed && <span className="truncate">{a.name}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="mt-auto space-y-1">
+          <NavItem to="/trash" icon={<Trash2 />} label={t('nav.trash')} collapsed={collapsed} />
           <NavItem
             to="/settings"
             icon={<Settings />}

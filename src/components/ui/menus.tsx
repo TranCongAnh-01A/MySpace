@@ -56,3 +56,22 @@ export function ContextMenuItem({
 }: ComponentProps<typeof ContextPrimitive.Item>) {
   return <ContextPrimitive.Item className={cn(item, className)} {...props} />;
 }
+
+export function ContextMenuLabel({
+  className,
+  ...props
+}: ComponentProps<typeof ContextPrimitive.Label>) {
+  return (
+    <ContextPrimitive.Label
+      className={cn('px-2 py-1 text-xs font-medium text-muted', className)}
+      {...props}
+    />
+  );
+}
+
+export function ContextMenuSeparator({
+  className,
+  ...props
+}: ComponentProps<typeof ContextPrimitive.Separator>) {
+  return <ContextPrimitive.Separator className={cn('my-1 h-px bg-border', className)} {...props} />;
+}

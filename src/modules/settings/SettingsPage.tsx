@@ -42,32 +42,34 @@ export function SettingsPage() {
   const current: TabId = isTab(tab) ? tab : 'general';
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="mb-4 text-xl font-semibold">{t('settings.title')}</h1>
-      <Tabs value={current} onValueChange={(v) => void navigate(`/settings/${v}`)}>
-        <TabsList aria-label={t('settings.tabs')}>
-          {TABS.map((id) => (
-            <TabsTrigger key={id} value={id}>
-              {t(`settings.tab.${id}` as TKey)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        <TabsContent value="general">
-          <WithSettings>{(s) => <GeneralTab settings={s} />}</WithSettings>
-        </TabsContent>
-        <TabsContent value="system">
-          <WithSettings>{(s) => <SystemTab settings={s} />}</WithSettings>
-        </TabsContent>
-        <TabsContent value="notifications">
-          <WithSettings>{(s) => <NotificationsTab settings={s} />}</WithSettings>
-        </TabsContent>
-        <TabsContent value="areas">
-          <AreasTab />
-        </TabsContent>
-        <TabsContent value="data">
-          <DataTab />
-        </TabsContent>
-      </Tabs>
+    <div className="h-full overflow-auto p-6">
+      <div className="mx-auto max-w-3xl">
+        <h1 className="mb-4 text-xl font-semibold">{t('settings.title')}</h1>
+        <Tabs value={current} onValueChange={(v) => void navigate(`/settings/${v}`)}>
+          <TabsList aria-label={t('settings.tabs')}>
+            {TABS.map((id) => (
+              <TabsTrigger key={id} value={id}>
+                {t(`settings.tab.${id}` as TKey)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <TabsContent value="general">
+            <WithSettings>{(s) => <GeneralTab settings={s} />}</WithSettings>
+          </TabsContent>
+          <TabsContent value="system">
+            <WithSettings>{(s) => <SystemTab settings={s} />}</WithSettings>
+          </TabsContent>
+          <TabsContent value="notifications">
+            <WithSettings>{(s) => <NotificationsTab settings={s} />}</WithSettings>
+          </TabsContent>
+          <TabsContent value="areas">
+            <AreasTab />
+          </TabsContent>
+          <TabsContent value="data">
+            <DataTab />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

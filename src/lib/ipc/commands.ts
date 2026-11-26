@@ -9,7 +9,22 @@ import type {
   AreaCreate,
   AreaPatch,
   Backup,
+  ChecklistItem,
+  SearchHit,
+  SearchKind,
   SettingsPatch,
+  Tag,
+  TagCreate,
+  TagPatch,
+  Task,
+  TaskCreate,
+  TaskDetail,
+  TaskFilter,
+  TaskPatch,
+  TaskStatus,
+  TaskStatusResult,
+  TrashItem,
+  TrashKind,
 } from './contract';
 import * as mock from './mock';
 
@@ -105,6 +120,157 @@ export function openLogFolder(): Promise<void> {
 export function appInfo(): Promise<AppInfo> {
   if (isMock) return mock.mockAppInfo();
   return invoke<AppInfo>('app_info');
+}
+
+// ---- v0.2: inbox, tasks, checklist, tags, trash, search (hợp đồng B2 mục 2.1) ----
+
+export function inboxUpdate(id: string, content: string): Promise<InboxItem> {
+  if (isMock) return mock.mockInboxUpdate(id, content);
+  return invoke<InboxItem>('inbox_update', { id, content });
+}
+
+export function inboxDelete(id: string): Promise<void> {
+  if (isMock) return mock.mockInboxDelete(id);
+  return invoke<void>('inbox_delete', { id });
+}
+
+export function inboxConvertToTask(id: string, task: TaskCreate): Promise<Task> {
+  if (isMock) return mock.mockInboxConvertToTask(id, task);
+  return invoke<Task>('inbox_convert_to_task', { id, task });
+}
+
+export function taskList(filter: TaskFilter = {}): Promise<Task[]> {
+  if (isMock) return mock.mockTaskList(filter);
+  return invoke<Task[]>('task_list', { filter });
+}
+
+export function taskGet(id: string): Promise<TaskDetail> {
+  if (isMock) return mock.mockTaskGet(id);
+  return invoke<TaskDetail>('task_get', { id });
+}
+
+export function taskCreate(input: TaskCreate): Promise<Task> {
+  if (isMock) return mock.mockTaskCreate(input);
+  return invoke<Task>('task_create', { input });
+}
+
+export function taskUpdate(id: string, patch: TaskPatch, baseVersion: number): Promise<Task> {
+  if (isMock) return mock.mockTaskUpdate(id, patch, baseVersion);
+  return invoke<Task>('task_update', { id, patch, baseVersion });
+}
+
+export function taskSetStatus(id: string, status: TaskStatus): Promise<TaskStatusResult> {
+  if (isMock) return mock.mockTaskSetStatus(id, status);
+  return invoke<TaskStatusResult>('task_set_status', { id, status });
+}
+
+/** `beforeId`/`afterId`: Task nằm ngay trên/dưới vị trí mới trong cột đích. */
+export function taskMove(
+  id: string,
+  status: TaskStatus,
+  beforeId?: string,
+  afterId?: string,
+): Promise<TaskStatusResult> {
+  if (isMock) return mock.mockTaskMove(id, status, beforeId, afterId);
+  return invoke<TaskStatusResult>('task_move', {
+    id,
+    status,
+    beforeId: beforeId ?? null,
+    afterId: afterId ?? null,
+  });
+}
+
+export function taskArchive(id: string): Promise<void> {
+  if (isMock) return mock.mockTaskArchive(id, true);
+  return invoke<void>('task_archive', { id });
+}
+
+export function taskUnarchive(id: string): Promise<void> {
+  if (isMock) return mock.mockTaskArchive(id, false);
+  return invoke<void>('task_unarchive', { id });
+}
+
+export function taskDelete(id: string): Promise<void> {
+  if (isMock) return mock.mockTaskDelete(id);
+  return invoke<void>('task_delete', { id });
+}
+
+export function trashList(): Promise<TrashItem[]> {
+  if (isMock) return mock.mockTrashList();
+  return invoke<TrashItem[]>('trash_list');
+}
+
+export function trashRestore(kind: TrashKind, id: string): Promise<void> {
+  if (isMock) return mock.mockTrashRestore(kind, id);
+  return invoke<void>('trash_restore', { kind, id });
+}
+
+export function trashEmpty(): Promise<void> {
+  if (isMock) return mock.mockTrashEmpty();
+  return invoke<void>('trash_empty');
+}
+
+export function checklistAdd(taskId: string, content: string): Promise<ChecklistItem> {
+  if (isMock) return mock.mockChecklistAdd(taskId, content);
+  return invoke<ChecklistItem>('checklist_add', { taskId, content });
+}
+
+export function checklistUpdate(id: string, content: string): Promise<ChecklistItem> {
+  if (isMock) return mock.mockChecklistUpdate(id, content);
+  return invoke<ChecklistItem>('checklist_update', { id, content });
+}
+
+export function checklistToggle(id: string): Promise<ChecklistItem> {
+  if (isMock) return mock.mockChecklistToggle(id);
+  return invoke<ChecklistItem>('checklist_toggle', { id });
+}
+
+export function checklistReorder(
+  id: string,
+  beforeId?: string,
+  afterId?: string,
+): Promise<ChecklistItem> {
+  if (isMock) return mock.mockChecklistReorder(id, beforeId, afterId);
+  return invoke<ChecklistItem>('checklist_reorder', {
+    id,
+    beforeId: beforeId ?? null,
+    afterId: afterId ?? null,
+  });
+}
+
+export function checklistDelete(id: string): Promise<void> {
+  if (isMock) return mock.mockChecklistDelete(id);
+  return invoke<void>('checklist_delete', { id });
+}
+
+export function tagList(): Promise<Tag[]> {
+  if (isMock) return mock.mockTagList();
+  return invoke<Tag[]>('tag_list');
+}
+
+export function tagCreate(input: TagCreate): Promise<Tag> {
+  if (isMock) return mock.mockTagCreate(input);
+  return invoke<Tag>('tag_create', { input });
+}
+
+export function tagUpdate(id: string, patch: TagPatch): Promise<Tag> {
+  if (isMock) return mock.mockTagUpdate(id, patch);
+  return invoke<Tag>('tag_update', { id, patch });
+}
+
+export function tagDelete(id: string): Promise<void> {
+  if (isMock) return mock.mockTagDelete(id);
+  return invoke<void>('tag_delete', { id });
+}
+
+export function taskSetTags(taskId: string, tagIds: string[]): Promise<Task> {
+  if (isMock) return mock.mockTaskSetTags(taskId, tagIds);
+  return invoke<Task>('task_set_tags', { taskId, tagIds });
+}
+
+export function search(query: string, kinds?: SearchKind[], limit?: number): Promise<SearchHit[]> {
+  if (isMock) return mock.mockSearch(query, kinds, limit);
+  return invoke<SearchHit[]>('search', { query, kinds: kinds ?? null, limit: limit ?? null });
 }
 
 /** Lấy thông báo hiển thị được từ lỗi của command (`AppError`) hoặc lỗi bất kỳ. */
