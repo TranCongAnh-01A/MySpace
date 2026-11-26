@@ -2,7 +2,7 @@
 
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 22:50
+**Cập nhật lần cuối:** 2026-11-26 23:20
 
 ---
 
@@ -11,7 +11,7 @@
 - **Thư mục:** `D:\04.Project_me\MySpace`
 - **Mục tiêu chính:** ứng dụng desktop Windows (`.exe`) local-first gom Inbox/Quick Capture, Tasks, Projects, Calendar, Notes, Dashboard; dự án chủ lực cho CV. Spec: [./spec/lifehub_spec_20261126.md](./spec/lifehub_spec_20261126.md)
 - **Đối tượng người dùng:** một người dùng trên Windows 10/11, không tài khoản
-- **Trạng thái hiện tại:** **v0.4 đã merge vào `main`** (tag `v0.4.0`, chưa push). v0.1–v0.3: khung, Settings, Areas, Backup, design system, Inbox, Tasks (List/Board/lặp/checklist/tag), Trash, search, Command Palette, Projects, Today, dữ liệu mẫu. v0.4: Calendar (FullCalendar ngày/tuần/tháng/danh sách, kéo thả Event và deadline, time blocking), Reminders + scheduler + thông báo Windows (bấm mở đúng bản ghi), nhắc nhở bị lỡ, khay "Việc hôm nay"/"Tạm dừng thông báo", Today có Lịch trình. Trên bản gộp: lint, tsc, Vitest 104/104, build, fmt, clippy --all-targets, cargo test 216/216 xanh. **Chưa thử trên bản `.exe` đã cài:** thông báo Windows khi app ở khay, bấm thông báo, kéo thả bằng chuột thật. Bước tiếp: người dùng thử bản cài; sau đó B5 + C5 (v0.5: Notes). ADR ở [./adr/](./adr/).
+- **Trạng thái hiện tại:** **v0.4 đã merge vào `main`** (tag `v0.4.0`, chưa push). v0.1–v0.3: khung, Settings, Areas, Backup, design system, Inbox, Tasks (List/Board/lặp/checklist/tag), Trash, search, Command Palette, Projects, Today, dữ liệu mẫu. v0.4: Calendar (FullCalendar ngày/tuần/tháng/danh sách, kéo thả Event và deadline, time blocking), Reminders + scheduler + thông báo Windows (bấm mở đúng bản ghi), nhắc nhở bị lỡ, khay "Việc hôm nay"/"Tạm dừng thông báo", Today có Lịch trình. Trên bản gộp: lint, tsc, Vitest 104/104, build, fmt, clippy --all-targets, cargo test 216/216 xanh. **Người dùng đã thử trên bản `.exe` đã cài (2026-11-26): OK** — thông báo Windows khi app ở khay, bấm thông báo mở đúng Task, nhắc nhở bị lỡ, kéo thả Calendar, menu khay. Lưu ý: số phiên bản app vẫn là `0.1.0` (chưa ai tăng; để phiên D lo khi làm updater). Bước tiếp: B5 + C5 (v0.5: Notes). ADR ở [./adr/](./adr/).
 
 ## 2. Tech Stack
 | Tầng | Công nghệ | Phiên bản | Ghi chú |
@@ -57,7 +57,7 @@ MySpace/
 | Nền tảng v0.1: Settings, Areas, Backup, design system | B1 + C1 | Xong, đã merge (v0.1.0) |
 | Inbox, Tasks, Search | v0.2 (B2 + C2) | Xong, đã merge (v0.2.0) |
 | Projects, Kanban, Dashboard | v0.3 (B3 + C3) | Xong, đã merge (v0.3.0) |
-| Calendar, Reminders | v0.4 (B4 + C4) | Đã merge (v0.4.0), chờ thử trên bản cài |
+| Calendar, Reminders | v0.4 (B4 + C4) | Xong, đã merge (v0.4.0), đã thử trên bản cài |
 | Notes | v0.5 (B5 + C5) | Chưa bắt đầu |
 | E2E, Auto Update, v1.0 | Phiên D | Chưa bắt đầu |
 
