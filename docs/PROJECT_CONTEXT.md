@@ -2,7 +2,7 @@
 
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-26 18:30
+**Cập nhật lần cuối:** 2026-11-26 20:45
 
 ---
 
@@ -11,7 +11,7 @@
 - **Thư mục:** `D:\04.Project_me\MySpace`
 - **Mục tiêu chính:** ứng dụng desktop Windows (`.exe`) local-first gom Inbox/Quick Capture, Tasks, Projects, Calendar, Notes, Dashboard; dự án chủ lực cho CV. Spec: [./spec/lifehub_spec_20261126.md](./spec/lifehub_spec_20261126.md)
 - **Đối tượng người dùng:** một người dùng trên Windows 10/11, không tài khoản
-- **Trạng thái hiện tại:** **v0.2 đã merge vào `main`** (tag `v0.2.0`, đã push). v0.1: khung, Quick Capture → Inbox, khay, CI, Settings, Areas, Backup/Restore, design system. v0.2: Inbox đủ CRUD + chuyển thành Task, Tasks (List ảo hoá, Board kéo thả, panel chi tiết, checklist, tag, task lặp, lọc theo hạn/múi giờ), Thùng rác, tìm kiếm không dấu, Command Palette. Trên bản gộp: lint, tsc, Vitest 47/47, build, fmt, clippy, cargo test 160/160 xanh; release: lọc 5.000 Task 21 ms, search 3–4 ms. `contract.ts` re-export toàn bộ từ bindings. Chưa kiểm bằng tay toàn luồng UI với core thật. Đang làm: B3 ([kế hoạch](./plan/lifehub_B3_impl_20261126.md)) + C3 ([kế hoạch](./plan/lifehub_C3_impl_20261126.md)) song song (v0.3). ADR ở [./adr/](./adr/).
+- **Trạng thái hiện tại:** **v0.3 đã merge vào `main`** (tag `v0.3.0`, chưa push). v0.1: khung, Quick Capture → Inbox, khay, CI, Settings, Areas, Backup/Restore, design system. v0.2: Inbox, Tasks (List/Board/panel, checklist, tag, lặp), Thùng rác, tìm kiếm không dấu, Command Palette. v0.3: Projects (CRUD, sắp xếp, tiến độ, lưu trữ/xoá theo `WithChildren`/`Detach`), trang Project 4 tab, Today/Dashboard, dữ liệu mẫu GGStudio (bản dev). Trên bản gộp: lint, tsc, Vitest 64/64, build, fmt, clippy --all-targets, cargo test 185/185 xanh. `contract.ts` re-export toàn bộ từ bindings. Chưa kiểm bằng tay UI với core thật. Bước tiếp: B4 + C4 (v0.4: Calendar, Events, Reminders, thông báo Windows) — cần phiên B/C mới (phiên cũ đầy ngữ cảnh). ADR ở [./adr/](./adr/).
 
 ## 2. Tech Stack
 | Tầng | Công nghệ | Phiên bản | Ghi chú |
@@ -56,7 +56,7 @@ MySpace/
 | Khung + Quick Capture → Inbox | Phiên A | Xong (A1 ✅, A2 ✅) |
 | Nền tảng v0.1: Settings, Areas, Backup, design system | B1 + C1 | Xong, đã merge (v0.1.0) |
 | Inbox, Tasks, Search | v0.2 (B2 + C2) | Xong, đã merge (v0.2.0) |
-| Projects, Kanban, Dashboard | v0.3 (B3 + C3) | Đang làm |
+| Projects, Kanban, Dashboard | v0.3 (B3 + C3) | Xong, đã merge (v0.3.0) |
 | Calendar, Reminders | v0.4 (B4 + C4) | Chưa bắt đầu |
 | Notes | v0.5 (B5 + C5) | Chưa bắt đầu |
 | E2E, Auto Update, v1.0 | Phiên D | Chưa bắt đầu |
