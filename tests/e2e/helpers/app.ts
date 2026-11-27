@@ -104,10 +104,8 @@ export async function startDriver(): Promise<void> {
       ...process.env,
       LIFEHUB_DATA_DIR: path.join(sessionDir, 'data'),
       LIFEHUB_E2E: '1',
-      // WebView2 mặc định đặt dữ liệu trình duyệt trong thư mục dữ liệu thật của app, nên trên máy
-      // người dùng phải tách ra. Trên CI (không có dữ liệu thật) KHÔNG đặt: log chẩn đoán cho thấy
-      // đặt biến này trên runner khiến WebView2 treo lúc khởi tạo (setup không bao giờ chạy).
-      ...(process.env.CI ? {} : { WEBVIEW2_USER_DATA_FOLDER: webview }),
+      // WebView2 mặc định đặt dữ liệu trình duyệt trong thư mục dữ liệu thật của app.
+      WEBVIEW2_USER_DATA_FOLDER: webview,
     },
   });
   if (driverLog) {
