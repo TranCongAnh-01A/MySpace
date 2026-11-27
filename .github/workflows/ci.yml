@@ -24,6 +24,7 @@ jobs:
           workspaces: src-tauri
 
       - run: npm ci
+      - run: npm run version:check
       - run: npm run lint
       - run: npm test
 
@@ -47,3 +48,39 @@ jobs:
           name: lifehub-setup
           path: src-tauri/target/release/bundle/nsis/*-setup.exe
           if-no-files-found: error
+
+  # E2E (WebdriverIO + tauri-driver) chạy ở job riêng để không làm chậm job chính.
+  # Dùng bản debug với LIFEHUB_DATA_DIR trỏ vào thư mục tạm nên không chạm dữ liệu nào khác.
+  e2e:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Cache tauri-driver
+        id: tauri-driver
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/tauri-driver.exe
+          key: tauri-driver-${{ runner.os }}-v2
+
+      - name: Cài tauri-driver
+        if: steps.tauri-driver.outputs.cache-hit != 'true'
+        run: cargo install tauri-driver --locked
+
+      - run: npm ci
+      - name: Tải msedgedriver (khớp phiên bản WebView2)
+        run: npm run e2e:setup
+      - name: Build app (debug, không đóng gói)
+        run: npm run e2e:build
+      - run: npm run e2e

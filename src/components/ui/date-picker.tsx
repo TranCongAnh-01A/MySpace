@@ -16,6 +16,7 @@ type Props = {
   placeholder: string;
   ariaLabel?: string;
   className?: string;
+  testId?: string;
 };
 
 export function DatePicker({
@@ -27,12 +28,14 @@ export function DatePicker({
   placeholder,
   ariaLabel,
   className,
+  testId,
 }: Props) {
   const [open, setOpen] = useState(false);
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger
         aria-label={ariaLabel}
+        data-testid={testId}
         className={cn(
           'inline-flex h-9 min-w-44 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm',
           !value && 'text-muted',
@@ -46,6 +49,7 @@ export function DatePicker({
         <Popover.Content
           align="start"
           sideOffset={4}
+          data-testid="date-picker-content"
           className="z-50 rounded-md border border-border bg-surface p-3 text-text shadow-md"
         >
           <DayPicker

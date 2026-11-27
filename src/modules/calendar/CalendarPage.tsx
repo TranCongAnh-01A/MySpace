@@ -345,7 +345,7 @@ export function CalendarPage() {
           </button>
         ))}
       </div>
-      <Button size="sm" onClick={() => openCreate()}>
+      <Button size="sm" data-testid="calendar-create" onClick={() => openCreate()}>
         <Plus />
         {t('cal.create')} <Kbd>N</Kbd>
       </Button>

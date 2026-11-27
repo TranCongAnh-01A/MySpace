@@ -33,7 +33,12 @@ export function TitleBar() {
           <Kbd>Ctrl+K</Kbd>
         </button>
       </div>
-      <Button size="sm" className="mr-3 h-7" onClick={() => setQuickAddOpen(true)}>
+      <Button
+        size="sm"
+        className="mr-3 h-7"
+        data-testid="titlebar-quick-add"
+        onClick={() => setQuickAddOpen(true)}
+      >
         <Plus />
         {t('titlebar.quickAdd')}
       </Button>

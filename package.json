@@ -1,7 +1,7 @@
 {
   "name": "lifehub",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,11 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "version:check": "node scripts/version-check.mjs",
+    "e2e:setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/e2e-setup.ps1",
+    "e2e": "wdio run tests/e2e/wdio.conf.ts",
+    "e2e:build": "tauri build --debug --no-bundle"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -70,10 +74,15 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.13",
     "@types/luxon": "^3.7.6",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.20.7",
     "@types/react": "^19.3.3",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "@wdio/cli": "^9.33.1",
+    "@wdio/local-runner": "^9.33.1",
+    "@wdio/mocha-framework": "^9.33.1",
+    "@wdio/spec-reporter": "^9.33.1",
     "eslint": "^10.15.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.14.0",

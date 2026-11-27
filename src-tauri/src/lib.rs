@@ -62,18 +62,24 @@ fn startup_maintenance(conn: &mut rusqlite::Connection, trash_retention_days: u3
 }
 
 pub fn run() {
-    tauri::Builder::default()
-        // single-instance phải được đăng ký đầu tiên.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+    let isolated = system::isolated_run();
+    let mut builder = tauri::Builder::default();
+    // single-instance phải được đăng ký đầu tiên. Bản debug chạy với `LIFEHUB_DATA_DIR` (E2E)
+    // bỏ qua nó để không tranh khoá với app thật; plugin này không cho đổi định danh.
+    if !isolated {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             show_main(app);
-        }))
-        .plugin(
+        }));
+        // Plugin ghi trạng thái cửa sổ vào thư mục cấu hình thật, nên E2E cũng bỏ qua.
+        builder = builder.plugin(
             tauri_plugin_window_state::Builder::default()
                 // Chỉ nhớ kích thước/vị trí; không nhớ trạng thái ẩn/hiện.
                 .with_state_flags(StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED)
                 .with_denylist(&[QUICK_CAPTURE])
                 .build(),
-        )
+        );
+    }
+    builder
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         // Khởi động cùng Windows: app được mở với `--hidden`.
         .plugin(tauri_plugin_autostart::init(
@@ -84,7 +90,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let dirs = AppDirs::new(app.path().app_local_data_dir()?);
+            let dirs = AppDirs::new(system::resolve_data_dir(app.path().app_local_data_dir()?));
             std::fs::create_dir_all(&dirs.data)?;
             if let Ok(guard) = logging::init(&dirs.logs) {
                 app.manage(logging::LogGuard(guard));
@@ -102,10 +108,13 @@ pub fn run() {
             let scheduler = SchedulerHandle::new();
             app.manage(scheduler.clone());
             system::tray::init(app)?;
-            system::shortcut::register_quick_capture(
-                app.handle(),
-                &settings.quick_capture_shortcut,
-            );
+            // E2E không đăng ký phím tắt toàn cục (tránh tranh phím với app thật).
+            if !system::e2e_mode() {
+                system::shortcut::register_quick_capture(
+                    app.handle(),
+                    &settings.quick_capture_shortcut,
+                );
+            }
             spawn_daily_backup(app.handle().clone(), dirs.backups.clone());
 
             // Cửa sổ chính tạo ở trạng thái ẩn (tránh nháy lúc khởi động); chỉ ẩn tiếp

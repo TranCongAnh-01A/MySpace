@@ -102,6 +102,7 @@ function CreateForm({
               dateFormat={ctx.dateFormat}
               placeholder={t('detail.pickDate')}
               ariaLabel={t('detail.dueDate')}
+              testId="create-task-due"
               className="w-full"
             />
           </div>

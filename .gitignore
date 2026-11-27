@@ -9,3 +9,9 @@ src-tauri/gen/
 .claude/settings.local.json
 .claude/worktrees/
 .claude/skills/
+
+# Fixture DB của bản trước (test nâng cấp) cần được commit
+!src-tauri/tests/fixtures/*.db
+
+# Công cụ E2E tải về máy (msedgedriver)
+.e2e/
