@@ -238,7 +238,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
 - **Xong khi:** gõ xong đóng app ngay sau 1 giây → mở lại vẫn còn nội dung (trên bản thật, sau khi merge với B5).
 
 ### Phiên D: Ghép nối cuối và phát hành
-#### 📍 Phase D1: E2E + kiểm thử dữ liệu ✅ (xanh trên máy; job CI chờ push)
+#### 📍 Phase D1: E2E + kiểm thử dữ liệu ✅ (xanh trên máy; job `e2e` trên CI đỏ, tạm không chặn — việc còn mở)
 - **Việc:**
   - [x] WebdriverIO + tauri-driver chạy trong CI: Quick Capture → Inbox → Task, Kanban kéo thả, tạo Event, Note auto save rồi khởi động lại.
   - [x] Test migration (mở DB của bản v0.x rồi nâng cấp), test backup/restore trong CI.

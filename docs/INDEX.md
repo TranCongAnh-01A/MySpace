@@ -53,6 +53,7 @@
 | `lifehub_core-b4_explain_20261126.md` | 2026-11-26 | Giải thích core Rust B4 (calendar, reminders, scheduler, thông báo) | [./explain/lifehub_core-b4_explain_20261126.md](./explain/lifehub_core-b4_explain_20261126.md) |
 | `log_20261126_2350.md` | 2026-11-26 | Nhật ký phiên B5 | [./log/log_20261126_2350.md](./log/log_20261126_2350.md) |
 | `log_20261127_0030.md` | 2026-11-27 | Nhật ký phiên C5 | [./log/log_20261127_0030.md](./log/log_20261127_0030.md) |
+| `log_20261127_1200.md` | 2026-11-27 | Nhật ký phiên D1 (E2E, test dữ liệu, phiên bản, tách bundle; việc còn mở: E2E trên CI) | [./log/log_20261127_1200.md](./log/log_20261127_1200.md) |
 | `lifehub_core-b5_explain_20261126.md` | 2026-11-26 | Giải thích core Rust B5 (notes, allowlist, thoát an toàn) | [./explain/lifehub_core-b5_explain_20261126.md](./explain/lifehub_core-b5_explain_20261126.md) |
 
 ## 3b. Quyết định kiến trúc (docs/adr/, tên cố định)
