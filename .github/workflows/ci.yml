@@ -83,4 +83,33 @@ jobs:
         run: npm run e2e:setup
       - name: Build app (debug, không đóng gói)
         run: npm run e2e:build
+      - name: Chẩn đoán - phiên bản và chạy thử app 10 giây
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          New-Item -ItemType Directory -Force e2e-logs | Out-Null
+          $wv = (Get-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}' -ErrorAction SilentlyContinue).pv
+          "WebView2 Runtime: $wv" | Tee-Object e2e-logs/versions.txt -Append
+          "msedgedriver: $(& .e2e/msedgedriver.exe --version)" | Tee-Object e2e-logs/versions.txt -Append
+          $tmp = Join-Path $env:RUNNER_TEMP 'lifehub-smoke'
+          New-Item -ItemType Directory -Force $tmp | Out-Null
+          $env:LIFEHUB_DATA_DIR = Join-Path $tmp 'data'
+          $env:LIFEHUB_E2E = '1'
+          $env:WEBVIEW2_USER_DATA_FOLDER = Join-Path $tmp 'webview2'
+          $p = Start-Process -FilePath src-tauri/target/debug/lifehub.exe -PassThru -RedirectStandardOutput e2e-logs/smoke-stdout.txt -RedirectStandardError e2e-logs/smoke-stderr.txt
+          Start-Sleep -Seconds 10
+          if ($p.HasExited) { "App THOAT SOM, exit code $($p.ExitCode)" | Tee-Object e2e-logs/versions.txt -Append } else { "App con song sau 10 giay"  | Tee-Object e2e-logs/versions.txt -Append; $p.Kill() }
+          Copy-Item (Join-Path $env:LIFEHUB_DATA_DIR 'logs') e2e-logs/smoke-app-logs -Recurse -ErrorAction SilentlyContinue
+          Get-Content e2e-logs/smoke-stderr.txt -ErrorAction SilentlyContinue
+
       - run: npm run e2e
+        env:
+          E2E_LOG_DIR: ${{ github.workspace }}/e2e-logs
+
+      - name: Tải log E2E
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: e2e-logs
+          if-no-files-found: ignore

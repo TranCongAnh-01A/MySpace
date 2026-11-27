@@ -1,5 +1,13 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import {
+  cpSync,
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,7 +17,11 @@ export const APP_BINARY = path.join(ROOT, 'src-tauri', 'target', 'debug', 'lifeh
 const NATIVE_DRIVER = path.join(ROOT, '.e2e', 'msedgedriver.exe');
 export const DRIVER_PORT = 4444;
 
+/** Có đặt `E2E_LOG_DIR` (CI): ghi log tauri-driver, msedgedriver (verbose) và log của app vào đó. */
+const LOG_DIR = process.env.E2E_LOG_DIR ? path.resolve(process.env.E2E_LOG_DIR) : undefined;
+
 let driver: ChildProcess | undefined;
+let driverLog: ReturnType<typeof createWriteStream> | undefined;
 let sessionDir: string | undefined;
 
 /** Thư mục gốc tạm của spec hiện tại. Dữ liệu app nằm ở `<gốc>/data`. */
@@ -64,20 +76,42 @@ export async function startDriver(): Promise<void> {
   assertSafe(sessionDir);
   const webview = path.join(sessionDir, 'webview2');
   mkdirSync(webview, { recursive: true });
-  driver = spawn(
-    'tauri-driver',
-    ['--port', String(DRIVER_PORT), '--native-driver', NATIVE_DRIVER],
-    {
-      stdio: ['ignore', 'inherit', 'inherit'],
-      env: {
-        ...process.env,
-        LIFEHUB_DATA_DIR: path.join(sessionDir, 'data'),
-        LIFEHUB_E2E: '1',
-        // WebView2 mặc định đặt dữ liệu trình duyệt trong thư mục dữ liệu thật của app.
-        WEBVIEW2_USER_DATA_FOLDER: webview,
-      },
+  let nativeDriver = NATIVE_DRIVER;
+  let stdio: 'inherit' | ['ignore', 'inherit', 'inherit'] | ['ignore', number, number] = [
+    'ignore',
+    'inherit',
+    'inherit',
+  ];
+  if (LOG_DIR) {
+    const prefix = `spec${process.pid}-`;
+    mkdirSync(LOG_DIR, { recursive: true });
+    // tauri-driver không cho truyền cờ cho msedgedriver, nên bọc bằng một .cmd để bật log chi tiết.
+    nativeDriver = path.join(LOG_DIR, `${prefix}msedgedriver-wrapper.cmd`);
+    writeFileSync(
+      nativeDriver,
+      `@echo off
+
+"${NATIVE_DRIVER}" --verbose --log-path="${path.join(LOG_DIR, `${prefix}msedgedriver.log`)}" %*
+
+`,
+    );
+    driverLog = createWriteStream(path.join(LOG_DIR, `${prefix}tauri-driver.log`));
+    stdio = ['ignore', 'pipe', 'pipe'] as never;
+  }
+  driver = spawn('tauri-driver', ['--port', String(DRIVER_PORT), '--native-driver', nativeDriver], {
+    stdio: stdio as never,
+    env: {
+      ...process.env,
+      LIFEHUB_DATA_DIR: path.join(sessionDir, 'data'),
+      LIFEHUB_E2E: '1',
+      // WebView2 mặc định đặt dữ liệu trình duyệt trong thư mục dữ liệu thật của app.
+      WEBVIEW2_USER_DATA_FOLDER: webview,
     },
-  );
+  });
+  if (driverLog) {
+    driver.stdout?.pipe(driverLog, { end: false });
+    driver.stderr?.pipe(driverLog, { end: false });
+  }
   driver.once('error', (e) => console.error('tauri-driver lỗi:', e));
   await waitForPort(DRIVER_PORT, 15_000);
 }
@@ -86,8 +120,23 @@ export async function startDriver(): Promise<void> {
 export function stopDriver(): void {
   driver?.kill();
   driver = undefined;
+  driverLog?.end();
+  driverLog = undefined;
   if (sessionDir) {
     assertSafe(sessionDir);
+    if (LOG_DIR) {
+      try {
+        cpSync(
+          path.join(sessionDir, 'data', 'logs'),
+          path.join(LOG_DIR, `spec${process.pid}-app-logs`),
+          {
+            recursive: true,
+          },
+        );
+      } catch {
+        /* app chưa kịp tạo thư mục log */
+      }
+    }
     try {
       rmSync(sessionDir, { recursive: true, force: true });
     } catch {
