@@ -2,7 +2,7 @@
 
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-27 01:10
+**Cập nhật lần cuối:** 2026-11-27 01:30
 
 ---
 
@@ -11,7 +11,7 @@
 - **Thư mục:** `D:\04.Project_me\MySpace`
 - **Mục tiêu chính:** ứng dụng desktop Windows (`.exe`) local-first gom Inbox/Quick Capture, Tasks, Projects, Calendar, Notes, Dashboard; dự án chủ lực cho CV. Spec: [./spec/lifehub_spec_20261126.md](./spec/lifehub_spec_20261126.md)
 - **Đối tượng người dùng:** một người dùng trên Windows 10/11, không tài khoản
-- **Trạng thái hiện tại:** **v0.5 đã merge vào `main`** (tag `v0.5.0`, chưa push) — **đủ 6 module MVP**: Inbox + Quick Capture, Tasks, Projects, Calendar, Notes, Today/Dashboard; kèm Settings, Areas, Backup/Restore, Trash, search không dấu, Command Palette, nhắc nhở + thông báo Windows (đã thử trên bản cài ở v0.4). v0.5: Notes (Tiptap, slash command, code block, auto save 1s, CONFLICT, allowlist node/mark ở cả UI và core, thoát an toàn `app-will-quit`). Trên bản gộp: lint, tsc, Vitest 136/136, build, fmt, clippy --all-targets, cargo test 255/255 xanh. **Người dùng đã thử Notes trên bản cài (2026-11-27): OK** — soạn thảo, slash command, auto save, `Ctrl+Q` ngay sau khi gõ không mất chữ, dán HTML, liên kết Project/Task/Inbox/Today, tìm không dấu. Ghi chú cho phiên D: bundle JS ~891 kB (nên tách chunk), số phiên bản app vẫn `0.1.0`. Bước tiếp: phiên D (E2E, Auto Update, phát hành v1.0) — chạy một mình (hạn mức tuần > 50%). ADR ở [./adr/](./adr/).
+- **Trạng thái hiện tại:** **v0.5 đã merge vào `main`** (tag `v0.5.0`, đã push) — **đủ 6 module MVP**: Inbox + Quick Capture, Tasks, Projects, Calendar, Notes, Today/Dashboard; kèm Settings, Areas, Backup/Restore, Trash, search không dấu, Command Palette, nhắc nhở + thông báo Windows (đã thử trên bản cài ở v0.4). v0.5: Notes (Tiptap, slash command, code block, auto save 1s, CONFLICT, allowlist node/mark ở cả UI và core, thoát an toàn `app-will-quit`). Trên bản gộp: lint, tsc, Vitest 136/136, build, fmt, clippy --all-targets, cargo test 255/255 xanh. **Người dùng đã thử Notes trên bản cài (2026-11-27): OK** — soạn thảo, slash command, auto save, `Ctrl+Q` ngay sau khi gõ không mất chữ, dán HTML, liên kết Project/Task/Inbox/Today, tìm không dấu. Ghi chú cho phiên D: bundle JS ~891 kB (nên tách chunk), số phiên bản app vẫn `0.1.0`. Đang làm: phiên D, Phase D1 ([kế hoạch](./plan/lifehub_D1_impl_20261127.md)) — chạy một mình (hạn mức tuần 54%). ADR ở [./adr/](./adr/).
 
 ## 2. Tech Stack
 | Tầng | Công nghệ | Phiên bản | Ghi chú |
@@ -59,7 +59,7 @@ MySpace/
 | Projects, Kanban, Dashboard | v0.3 (B3 + C3) | Xong, đã merge (v0.3.0) |
 | Calendar, Reminders | v0.4 (B4 + C4) | Xong, đã merge (v0.4.0), đã thử trên bản cài |
 | Notes | v0.5 (B5 + C5) | Xong, đã merge (v0.5.0), đã thử trên bản cài |
-| E2E, Auto Update, v1.0 | Phiên D | Chưa bắt đầu |
+| E2E, Auto Update, v1.0 | Phiên D | D1 đang làm |
 
 ## 7. Liên kết Liên quan
 - Xem thêm tại [Bản đồ tài liệu](./INDEX.md)

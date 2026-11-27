@@ -3,7 +3,7 @@
 > File này là **mục lục trung tâm**, giúp AI (và người mới) nắm nhanh toàn bộ cấu trúc tài liệu của dự án.
 > ⚠️ File nằm trong danh sách ngoại lệ (G.2) — **luôn ghi đè/cập nhật trực tiếp**, không đính kèm ngày tháng.
 
-**Cập nhật lần cuối:** 2026-11-27 00:50
+**Cập nhật lần cuối:** 2026-11-27 01:30
 
 ---
 
@@ -37,6 +37,7 @@
 | `lifehub_C4_impl_20261126.md` | 2026-11-26 | Kế hoạch triển khai C4 (Calendar, nhắc nhở) | [./plan/lifehub_C4_impl_20261126.md](./plan/lifehub_C4_impl_20261126.md) |
 | `lifehub_B5_impl_20261126.md` | 2026-11-26 | Kế hoạch triển khai B5 + hợp đồng IPC v0.5 | [./plan/lifehub_B5_impl_20261126.md](./plan/lifehub_B5_impl_20261126.md) |
 | `lifehub_C5_impl_20261126.md` | 2026-11-26 | Kế hoạch triển khai C5 (Notes, Tiptap) | [./plan/lifehub_C5_impl_20261126.md](./plan/lifehub_C5_impl_20261126.md) |
+| `lifehub_D1_impl_20261127.md` | 2026-11-27 | Kế hoạch triển khai D1 (E2E, test dữ liệu, phiên bản, tách bundle) | [./plan/lifehub_D1_impl_20261127.md](./plan/lifehub_D1_impl_20261127.md) |
 | `log_20261126.md` | 2026-11-26 | Nhật ký phiên làm việc (phiên A) | [./log/log_20261126.md](./log/log_20261126.md) |
 | `log_20261126_1425.md` | 2026-11-26 | Nhật ký phiên C (C1) | [./log/log_20261126_1425.md](./log/log_20261126_1425.md) |
 | `log_20261126_1430.md` | 2026-11-26 | Nhật ký phiên B (B1) | [./log/log_20261126_1430.md](./log/log_20261126_1430.md) |
@@ -101,6 +102,7 @@ docs/
 │   ├── lifehub_C4_impl_20261126.md
 │   ├── lifehub_B5_impl_20261126.md
 │   ├── lifehub_C5_impl_20261126.md
+│   ├── lifehub_D1_impl_20261127.md
 │   ├── TEMPLATE_analysis.md
 │   ├── TEMPLATE_impl.md
 │   └── TEMPLATE_plan.md
