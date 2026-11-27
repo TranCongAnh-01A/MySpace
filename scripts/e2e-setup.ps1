@@ -33,7 +33,15 @@ $zip = Join-Path $out 'edgedriver.zip'
 $url = "https://msedgedriver.microsoft.com/$version/edgedriver_win64.zip"
 Write-Host "Tải $url"
 Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-Expand-Archive -Path $zip -DestinationPath $out -Force
+# Không dùng Expand-Archive: lỗi trên PowerShell 5.1 của runner CI (thiếu overload ExtractToDirectory).
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
+try {
+  foreach ($entry in $archive.Entries) {
+    if ($entry.Name -eq '') { continue }
+    [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, (Join-Path $out $entry.Name), $true)
+  }
+} finally { $archive.Dispose() }
 Remove-Item $zip
 Set-Content -Path $stamp -Value $version -NoNewline
 Write-Host "Xong: $exe"
