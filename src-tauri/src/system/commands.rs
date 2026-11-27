@@ -23,6 +23,9 @@ pub struct AppInfo {
     pub data_dir: String,
     pub log_dir: String,
     pub backup_dir: String,
+    /// Có tự kiểm tra cập nhật lúc khởi động không: chỉ bản release. Bản debug (kể cả E2E, `LIFEHUB_DATA_DIR`) không gọi mạng; ở bản release
+    /// hai biến môi trường đó vô hiệu.
+    pub auto_update_check: bool,
 }
 
 #[tauri::command]
@@ -116,5 +119,6 @@ pub fn app_info(app: AppHandle, dirs: State<'_, AppDirs>) -> AppInfo {
         data_dir: s(&dirs.data),
         log_dir: s(&dirs.logs),
         backup_dir: s(&dirs.backups),
+        auto_update_check: !cfg!(debug_assertions),
     }
 }

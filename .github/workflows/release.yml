@@ -1,0 +1,94 @@
+name: Release
+
+# Chạy khi đẩy tag `v*` (ví dụ v0.9.0). Chỉ tạo bản NHÁP trên GitHub Releases;
+# người dùng tự xem rồi bấm Publish. Updater của app đọc `releases/latest`, mà `latest` chỉ
+# trỏ tới release đã publish, nên bản nháp không bao giờ tới tay người dùng khi chưa được duyệt.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # Tag phải đúng v<version>; tên tag đi qua biến môi trường, không nhúng thẳng vào lệnh.
+      - name: Kiểm tra tag khớp phiên bản
+        env:
+          TAG: ${{ github.ref_name }}
+        run: npm run version:check -- --tag "$env:TAG"
+
+      # Release notes bắt buộc có: docs/release/<tag>.md
+      - name: Đọc release notes
+        id: notes
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $file = "docs/release/$($env:TAG).md"
+          if (-not (Test-Path -LiteralPath $file)) {
+            Write-Error "Thiếu file release notes: $file"
+            exit 1
+          }
+          $body = (Get-Content -LiteralPath $file -Raw -Encoding utf8).TrimEnd()
+          $delim = "EOF_$([guid]::NewGuid().ToString('N'))"
+          "body<<$delim`n$body`n$delim" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - run: npm run lint
+      - run: npm test
+
+      - name: Rust fmt
+        run: cargo fmt --check
+        working-directory: src-tauri
+      - name: Rust clippy
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: src-tauri
+      - name: Rust test
+        run: cargo test
+        working-directory: src-tauri
+
+      # tauri-action v0.6.2 (bản v0 cuối cùng, còn input `includeUpdaterJson`).
+      # Khoá ký lấy từ Secrets; không in ra log.
+      - name: Build, ký và tạo bản nháp
+        uses: tauri-apps/tauri-action@v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'LifeHub ${{ github.ref_name }}'
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
+          args: --bundles nsis
+
+      # Kích thước bộ cài (spec: dưới 15 MB).
+      - name: Ghi kích thước bộ cài
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          $mb = [math]::Round($exe.Length / 1MB, 2)
+          "Bộ cài $($exe.Name): $mb MB" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          if ($mb -ge 15) { Write-Warning "Bộ cài lớn hơn 15 MB (spec)" }
