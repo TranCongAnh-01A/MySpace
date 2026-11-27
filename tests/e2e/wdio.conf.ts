@@ -16,6 +16,8 @@ export const config = {
     },
   ],
   logLevel: 'warn',
+  // Không thử lại tạo phiên: lỗi khởi động app thường lặp lại, mỗi lần thử tốn 60 giây.
+  connectionRetryCount: 0,
   framework: 'mocha',
   reporters: ['spec'],
   mochaOpts: { ui: 'bdd', timeout: 90_000 },
