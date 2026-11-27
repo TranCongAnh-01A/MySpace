@@ -23,6 +23,7 @@ LifeHub là ứng dụng Windows cài bằng file `.exe` và cần tự cập nh
 **Đánh đổi**
 - Windows SmartScreen cảnh báo khi cài. Người dùng phải được hướng dẫn trong README (spec mục 13, rủi ro 5).
 - Auto Update đọc từ GitHub Releases nên repo phải để public khi cần dùng cập nhật. Analysis đề xuất để private đến khoảng v0.3 rồi chuyển public. Đây là câu hỏi người dùng cần trả lời (analysis mục 2).
+  - **Cập nhật 2026-11-28:** người dùng chọn chuyển repo `MySpace` sang public trước khi phát hành bản có updater (Phase D2), sau khi quét bí mật trên toàn bộ lịch sử.
 
 ## Liên quan
 - [Spec mục 9.2, 12.3, 13](../spec/lifehub_spec_20261126.md)
