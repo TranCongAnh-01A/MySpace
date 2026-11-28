@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import {
   cpSync,
   createWriteStream,
@@ -13,12 +13,29 @@ import os from 'node:os';
 import path from 'node:path';
 
 export const ROOT = path.resolve(import.meta.dirname, '..', '..', '..');
-export const APP_BINARY = path.join(ROOT, 'src-tauri', 'target', 'debug', 'lifehub.exe');
+const REAL_BINARY = path.join(ROOT, 'src-tauri', 'target', 'debug', 'lifehub.exe');
 const NATIVE_DRIVER = path.join(ROOT, '.e2e', 'msedgedriver.exe');
 export const DRIVER_PORT = 4444;
 
 /** Có đặt `E2E_LOG_DIR` (CI): ghi log tauri-driver, msedgedriver (verbose) và log của app vào đó. */
 const LOG_DIR = process.env.E2E_LOG_DIR ? path.resolve(process.env.E2E_LOG_DIR) : undefined;
+
+/**
+ * Trên CI (có `E2E_LOG_DIR`), msedgedriver chạy app qua một wrapper `.exe` nhỏ (biên dịch từ
+ * `scripts/e2e-app-wrapper.rs`) để biết app có khởi động không và ghi stdout/stderr/mã thoát.
+ * tauri-driver bắt buộc đường dẫn kết thúc bằng `.exe`. Chạy trên máy thì dùng thẳng `lifehub.exe`.
+ */
+const WRAPPER = LOG_DIR ? path.join(LOG_DIR, 'app-wrapper.exe') : undefined;
+
+function buildAppWrapper(logDir: string, out: string): void {
+  mkdirSync(logDir, { recursive: true });
+  const r = spawnSync('rustc', [path.join(ROOT, 'scripts', 'e2e-app-wrapper.rs'), '-o', out], {
+    stdio: 'inherit',
+  });
+  if (r.status !== 0) throw new Error('Không biên dịch được e2e-app-wrapper.rs');
+}
+
+export const APP_BINARY = WRAPPER ?? REAL_BINARY;
 
 let driver: ChildProcess | undefined;
 let driverLog: ReturnType<typeof createWriteStream> | undefined;
@@ -66,12 +83,13 @@ function waitForPort(port: number, timeoutMs: number): Promise<void> {
 
 /** Tạo thư mục dữ liệu tạm và chạy tauri-driver với biến môi trường riêng cho E2E. */
 export async function startDriver(): Promise<void> {
-  if (!existsSync(APP_BINARY)) {
-    throw new Error(`Chưa có ${APP_BINARY}. Chạy: npm run e2e:build`);
+  if (!existsSync(REAL_BINARY)) {
+    throw new Error(`Chưa có ${REAL_BINARY}. Chạy: npm run e2e:build`);
   }
   if (!existsSync(NATIVE_DRIVER)) {
     throw new Error('Chưa có .e2e/msedgedriver.exe. Chạy: npm run e2e:setup');
   }
+  if (WRAPPER && LOG_DIR && !existsSync(WRAPPER)) buildAppWrapper(LOG_DIR, WRAPPER);
   sessionDir = mkdtempSync(path.join(os.tmpdir(), 'lifehub-e2e-'));
   assertSafe(sessionDir);
   const webview = path.join(sessionDir, 'webview2');
@@ -104,6 +122,7 @@ export async function startDriver(): Promise<void> {
       ...process.env,
       LIFEHUB_DATA_DIR: path.join(sessionDir, 'data'),
       LIFEHUB_E2E: '1',
+      LIFEHUB_REAL_BINARY: REAL_BINARY,
       // WebView2 mặc định đặt dữ liệu trình duyệt trong thư mục dữ liệu thật của app.
       WEBVIEW2_USER_DATA_FOLDER: webview,
     },
