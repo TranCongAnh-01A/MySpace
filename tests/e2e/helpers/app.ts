@@ -123,6 +123,8 @@ export async function startDriver(): Promise<void> {
       LIFEHUB_DATA_DIR: path.join(sessionDir, 'data'),
       LIFEHUB_E2E: '1',
       LIFEHUB_REAL_BINARY: REAL_BINARY,
+      // Giả thuyết 2 (chỉ CI): tắt GPU của WebView2; wrapper nối cờ này vào biến của msedgedriver.
+      ...(LOG_DIR ? { E2E_EXTRA_BROWSER_ARGS: '--disable-gpu' } : {}),
       // WebView2 mặc định đặt dữ liệu trình duyệt trong thư mục dữ liệu thật của app.
       WEBVIEW2_USER_DATA_FOLDER: webview,
     },

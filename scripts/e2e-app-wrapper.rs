@@ -4,7 +4,10 @@
 use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
+use std::path::Path;
 use std::process::Command;
+use std::thread;
+use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 fn main() {
@@ -25,7 +28,39 @@ fn main() {
     }
     let out = File::create(format!("{dir}/app-stdout.log")).expect("stdout");
     let err = File::create(format!("{dir}/app-stderr.log")).expect("stderr");
-    let status = Command::new(&real).args(&args).stdout(out).stderr(err).status();
+    // Giả thuyết 2 (CI): thêm cờ trình duyệt WebView2 (VD `--disable-gpu`) vào biến msedgedriver đã đặt.
+    let mut cmd = Command::new(&real);
+    cmd.args(&args).stdout(out).stderr(err);
+    if let Ok(extra) = env::var("E2E_EXTRA_BROWSER_ARGS") {
+        let base = env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").unwrap_or_default();
+        cmd.env("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", format!("{base} {extra}"));
+        writeln!(log, "  thêm cờ trình duyệt: {extra}").ok();
+    }
+    // Chẩn đoán thụ động: sau 20 giây xem DevToolsActivePort có nằm trong thư mục dữ liệu WebView2 không.
+    if let Ok(udf) = env::var("WEBVIEW2_USER_DATA_FOLDER") {
+        let logp = format!("{dir}/app-wrapper.log");
+        thread::spawn(move || {
+            thread::sleep(Duration::from_secs(20));
+            let mut l = OpenOptions::new().append(true).open(logp).expect("log");
+            let eb = Path::new(&udf).join("EBWebView");
+            let f = eb.join("DevToolsActivePort");
+            writeln!(l, "[+20s] {} tồn tại: {}", f.display(), f.exists()).ok();
+            if let Ok(t) = std::fs::read_to_string(&f) {
+                writeln!(l, "[+20s] nội dung: {}", t.replace(char::from(10), " | ")).ok();
+            }
+            if let Ok(rd) = std::fs::read_dir(&eb) {
+                let names: Vec<String> = rd
+                    .flatten()
+                    .take(30)
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .collect();
+                writeln!(l, "[+20s] thư mục EBWebView: {names:?}").ok();
+            } else {
+                writeln!(l, "[+20s] không đọc được {}", eb.display()).ok();
+            }
+        });
+    }
+    let status = cmd.status();
     match status {
         Ok(s) => {
             writeln!(log, "[{}] app thoát: {s}", now()).ok();
