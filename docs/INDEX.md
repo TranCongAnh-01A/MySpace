@@ -56,6 +56,10 @@
 | `log_20261126_2350.md` | 2026-11-26 | Nhật ký phiên B5 | [./log/log_20261126_2350.md](./log/log_20261126_2350.md) |
 | `log_20261127_0030.md` | 2026-11-27 | Nhật ký phiên C5 | [./log/log_20261127_0030.md](./log/log_20261127_0030.md) |
 | `log_20261127_1200.md` | 2026-11-27 | Nhật ký phiên D1 (E2E, test dữ liệu, phiên bản, tách bundle; việc còn mở: E2E trên CI) | [./log/log_20261127_1200.md](./log/log_20261127_1200.md) |
+| `log_20261128.md` | 2026-11-28 | Nhật ký phiên D2 (updater, phát hành, quét bí mật) | [./log/log_20261128.md](./log/log_20261128.md) |
+| `log_20261128_d3a.md` | 2026-11-28 | Nhật ký phiên D3a (đo hiệu năng, nghiệm thu, kết luận E2E trên CI) | [./log/log_20261128_d3a.md](./log/log_20261128_d3a.md) |
+| `perf-v1.md` | 2026-11-28 | Số đo hiệu năng v1 (spec 9.3) | [./release/perf-v1.md](./release/perf-v1.md) |
+| `acceptance-v1.md` | 2026-11-28 | Bảng đối chiếu nghiệm thu v1 (spec 12.2) | [./release/acceptance-v1.md](./release/acceptance-v1.md) |
 | `lifehub_core-b5_explain_20261126.md` | 2026-11-26 | Giải thích core Rust B5 (notes, allowlist, thoát an toàn) | [./explain/lifehub_core-b5_explain_20261126.md](./explain/lifehub_core-b5_explain_20261126.md) |
 
 ## 3b. Quyết định kiến trúc (docs/adr/, tên cố định)

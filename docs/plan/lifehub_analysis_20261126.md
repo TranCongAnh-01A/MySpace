@@ -254,7 +254,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
 #### 📍 Phase D3: Dùng thật 2 tuần → v1.0
 - **Việc:**
   - [ ] Người dùng dùng LifeHub hằng ngày, ghi các điểm khó chịu vào Inbox của LifeHub; phiên D sửa theo lô.
-  - [ ] Đo hiệu năng theo spec 9.3 (ghi rõ cấu hình máy) và đối chiếu tiêu chí nghiệm thu spec 12.2.
+  - [x] Đo hiệu năng theo spec 9.3 (ghi rõ cấu hình máy) và đối chiếu tiêu chí nghiệm thu spec 12.2. ✅ D3a (2026-11-28); còn đo `startup_ms`/Quick Capture trên bản cài và 4 mục ⚠️ cần người dùng thử.
 - **Xong khi:** mọi ô ở spec 12.2 đều ✅; tag `v1.0.0`.
 
 ## 6. Thứ tự bắt đầu
