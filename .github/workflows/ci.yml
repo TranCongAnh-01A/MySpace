@@ -53,7 +53,8 @@ jobs:
   # E2E (WebdriverIO + tauri-driver) chạy ở job riêng để không làm chậm job chính.
   # Dùng bản debug với LIFEHUB_DATA_DIR trỏ vào thư mục tạm nên không chạm dữ liệu nào khác.
   e2e:
-    # Tạm không chặn: msedgedriver không kết nối được app trên runner (DevToolsActivePort), chưa rõ nguyên nhân; xem docs/log/log_20261127_1200.md mục "Việc còn mở: E2E trên CI".
+    # Tạm không chặn: app khởi động bình thường nhưng WebView2 trên runner không tạo DevToolsActivePort nên
+    # msedgedriver không kết nối được. Đã thử 2 giả thuyết (D3a, xem docs/log/log_20261128_d3a.md); E2E chạy trên máy trước mỗi lần phát hành.
     continue-on-error: true
     timeout-minutes: 25
     runs-on: windows-latest
@@ -87,40 +88,14 @@ jobs:
         run: npm run e2e:setup
       - name: Build app (debug, không đóng gói)
         run: npm run e2e:build
-      - name: Chẩn đoán - phiên bản và chạy thử app
+      - name: Ghi phiên bản (chẩn đoán)
         shell: pwsh
         continue-on-error: true
         run: |
           New-Item -ItemType Directory -Force e2e-logs | Out-Null
-          $log = 'e2e-logs/versions.txt'
           $wv = (Get-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}' -ErrorAction SilentlyContinue).pv
-          "WebView2 Runtime: $wv" | Tee-Object $log -Append
-          "msedgedriver: $(& .e2e/msedgedriver.exe --version)" | Tee-Object $log -Append
-          "Session: $([Environment]::UserInteractive) / $((Get-Process -Id $PID).SessionId)" | Tee-Object $log -Append
-
-          function Test-App($name, $withWebviewDir) {
-            $tmp = Join-Path $env:RUNNER_TEMP "smoke-$name"
-            New-Item -ItemType Directory -Force $tmp | Out-Null
-            $env:LIFEHUB_DATA_DIR = Join-Path $tmp 'data'
-            $env:LIFEHUB_E2E = '1'
-            if ($withWebviewDir) { $env:WEBVIEW2_USER_DATA_FOLDER = Join-Path $tmp 'webview2' } else { Remove-Item Env:WEBVIEW2_USER_DATA_FOLDER -ErrorAction SilentlyContinue }
-            $p = Start-Process -FilePath src-tauri/target/debug/lifehub.exe -PassThru -RedirectStandardOutput "e2e-logs/smoke-$name-stdout.txt" -RedirectStandardError "e2e-logs/smoke-$name-stderr.txt"
-            Start-Sleep -Seconds 15
-            "== $name (webview dir riêng: $withWebviewDir) ==" | Tee-Object $log -Append
-            if ($p.HasExited) { "App THOAT SOM, exit code $($p.ExitCode)" | Tee-Object $log -Append }
-            else {
-              $p.Refresh()
-              "App song; Responding=$($p.Responding); MainWindowHandle=$($p.MainWindowHandle); Threads=$($p.Threads.Count)" | Tee-Object $log -Append
-              $p.Kill()
-            }
-            "msedgewebview2 dang chay: $((Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Measure-Object).Count)" | Tee-Object $log -Append
-            "Noi dung thu muc du lieu:" | Tee-Object $log -Append
-            Get-ChildItem $tmp -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 40 -ExpandProperty FullName | Tee-Object $log -Append
-            Copy-Item (Join-Path $env:LIFEHUB_DATA_DIR 'logs') "e2e-logs/smoke-$name-app-logs" -Recurse -ErrorAction SilentlyContinue
-            Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          }
-          Test-App 'a' $true
-          Test-App 'b' $false
+          "WebView2 Runtime: $wv" | Tee-Object e2e-logs/versions.txt -Append
+          "msedgedriver: $(& .e2e/msedgedriver.exe --version)" | Tee-Object e2e-logs/versions.txt -Append
 
       - run: npm run e2e
         env:
