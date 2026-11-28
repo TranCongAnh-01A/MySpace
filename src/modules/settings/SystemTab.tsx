@@ -19,7 +19,7 @@ function VersionRow() {
   const checkFailed = status === 'error' && errorStage === 'check';
   const show = () => useUpdateStore.setState({ dismissed: false });
   return (
-    <SettingsRow id="set-version" label={t('system.version')} hint={info.data?.version ?? '…'}>
+    <SettingsRow id="set-version" label={t('system.version')} hint={info.data ? `v${info.data.version}` : '…'}>
       <div className="flex flex-col items-end gap-1">
         <div className="flex items-center gap-2">
           {status === 'available' ? (
