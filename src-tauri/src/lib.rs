@@ -62,6 +62,7 @@ fn startup_maintenance(conn: &mut rusqlite::Connection, trash_retention_days: u3
 }
 
 pub fn run() {
+    system::mark_process_start();
     let isolated = system::isolated_run();
     let mut builder = tauri::Builder::default();
     // single-instance phải được đăng ký đầu tiên. Bản debug chạy với `LIFEHUB_DATA_DIR` (E2E)
@@ -228,6 +229,7 @@ pub fn run() {
             system::commands::open_data_folder,
             system::commands::open_log_folder,
             system::commands::app_info,
+            system::commands::app_ready,
             system::windows::app_quit,
             system::windows::app_quit_ready,
         ])

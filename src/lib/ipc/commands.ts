@@ -141,6 +141,12 @@ export function appInfo(): Promise<AppInfo> {
   return invoke<AppInfo>('app_info');
 }
 
+/** Báo core đã vẽ xong Today lần đầu (core ghi `startup_ms` vào log). Lỗi bị bỏ qua. */
+export function appReady(): Promise<void> {
+  if (isMock) return Promise.resolve();
+  return invoke<void>('app_ready').catch(() => undefined);
+}
+
 // ---- v0.2: inbox, tasks, checklist, tags, trash, search (hợp đồng B2 mục 2.1) ----
 
 export function inboxUpdate(id: string, content: string): Promise<InboxItem> {

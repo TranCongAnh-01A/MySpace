@@ -5,12 +5,39 @@ mod data_tests;
 #[cfg(debug_assertions)]
 pub mod demo;
 pub mod export;
+#[cfg(test)]
+mod perf_tests;
 pub mod shortcut;
 pub mod tray;
 pub mod windows;
 
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
+use std::time::Instant;
+
+static PROCESS_START: OnceLock<Instant> = OnceLock::new();
+static READY_LOGGED: AtomicBool = AtomicBool::new(false);
+
+/// Ghi mốc bắt đầu để đo `startup_ms`. Gọi ngay đầu `run()`.
+pub fn mark_process_start() {
+    let _ = PROCESS_START.set(Instant::now());
+}
+
+/// Frontend báo đã vẽ xong Today lần đầu: ghi `startup_ms` một lần duy nhất.
+/// Chỉ ghi con số, không ghi nội dung người dùng.
+pub fn log_startup_ready() {
+    if READY_LOGGED.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    if let Some(start) = PROCESS_START.get() {
+        tracing::info!(
+            startup_ms = start.elapsed().as_millis() as u64,
+            "app sẵn sàng"
+        );
+    }
+}
 
 /// Chọn thư mục dữ liệu. `override_dir` (từ `LIFEHUB_DATA_DIR`) chỉ được dùng khi `allow_override`
 /// là `true`; bản release luôn truyền `false` nên không thể bị chuyển hướng dữ liệu.

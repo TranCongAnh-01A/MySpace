@@ -18,7 +18,12 @@ fn bind(app: &AppHandle, accelerator: &str) -> AppResult<()> {
     app.global_shortcut()
         .on_shortcut(shortcut, |app, _shortcut, event| {
             if event.state() == ShortcutState::Pressed {
+                let t = std::time::Instant::now();
                 show_quick_capture(app);
+                tracing::info!(
+                    quick_capture_show_ms = t.elapsed().as_millis() as u64,
+                    "Quick Capture đã hiện"
+                );
             }
         })
         .map_err(|e| {

@@ -680,6 +680,7 @@ fn recent_notes_skip_archived_projects_on_dashboard() {
 }
 
 #[test]
+#[cfg(debug_assertions)]
 fn demo_seed_adds_three_notes_with_one_linked_to_payment_api() {
     let mut conn = db::open_in_memory().unwrap();
     let c = at(26, 3);

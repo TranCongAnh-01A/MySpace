@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { dashboardToday } from '@/lib/ipc/commands';
+import { appReady, dashboardToday } from '@/lib/ipc/commands';
 import type { DateFormat, Language } from '@/lib/ipc/contract';
 import { addDays, localToUtc, todayIn } from '@/lib/tz';
 
@@ -8,6 +8,17 @@ export const todayKey = ['today'] as const;
 
 export function useToday() {
   return useQuery({ queryKey: todayKey, queryFn: dashboardToday });
+}
+
+let appReadyReported = false;
+
+/** Khi Today có dữ liệu lần đầu và đã vẽ xong thì báo core một lần (để ghi `startup_ms`). */
+export function useReportAppReady(ready: boolean) {
+  useEffect(() => {
+    if (!ready || appReadyReported) return;
+    appReadyReported = true;
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => void appReady()));
+  }, [ready]);
 }
 
 /** Số mili giây từ `now` tới 00:00 ngày kế tiếp theo múi giờ của Settings. */

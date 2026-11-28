@@ -13,6 +13,7 @@ describe('Inbox → Task', () => {
     await $('[data-testid="titlebar-quick-add"]').click();
     const input = $('#quick-add-text');
     await input.waitForDisplayed();
+    await input.waitForClickable(); // hộp thoại còn đang hiện dần thì setValue báo "not interactable"
     await input.setValue(TEXT);
     await dialogButton('Thêm').click();
     await input.waitForExist({ reverse: true });

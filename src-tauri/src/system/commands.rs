@@ -122,3 +122,9 @@ pub fn app_info(app: AppHandle, dirs: State<'_, AppDirs>) -> AppInfo {
         auto_update_check: !cfg!(debug_assertions),
     }
 }
+
+/// Frontend gọi một lần sau khi vẽ xong Today lần đầu (đo `startup_ms`).
+#[tauri::command]
+pub fn app_ready() {
+    super::log_startup_ready();
+}

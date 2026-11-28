@@ -2151,6 +2151,29 @@ export function bumpNoteVersion(id: string) {
 if (typeof window !== 'undefined' && import.meta.env.VITE_IPC_MOCK === '1')
   (window as unknown as { __lifehubMock?: object }).__lifehubMock = { bumpNoteVersion };
 
+/** Đo hiệu năng: nạp thêm `count` Task (mặc định 5.000) vào bộ nhớ mock. Không lưu xuống localStorage. */
+export function seedLarge(count = 5000) {
+  ensureSeed();
+  const statuses: Task['status'][] = ['Todo', 'InProgress', 'Review', 'Done'];
+  const priorities: Task['priority'][] = ['Urgent', 'High', 'Medium', 'Low'];
+  const t = todayStr();
+  for (let i = 0; i < count; i++) {
+    tasks.push(
+      rawTask({
+        title: `Việc thử tải số ${i}`,
+        status: statuses[i % 4],
+        priority: priorities[i % 4],
+        ...(i % 3 !== 0 ? { dueDate: addDays(t, (i % 21) - 10) } : {}),
+      }),
+    );
+  }
+  return tasks.length;
+}
+if (typeof window !== 'undefined' && import.meta.env.VITE_IPC_MOCK === '1')
+  Object.assign((window as unknown as { __lifehubMock?: object }).__lifehubMock ?? {}, {
+    seedLarge,
+  });
+
 const docOf = (...blocks: object[]) => JSON.stringify({ type: 'doc', content: blocks });
 const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
 const head = (level: number, text: string) => ({

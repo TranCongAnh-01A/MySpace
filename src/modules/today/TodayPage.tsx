@@ -22,7 +22,7 @@ import { CreateTaskDialog } from '@/modules/tasks/CreateTaskDialog';
 import { dueInfo, type DateCtx } from '@/modules/tasks/dates';
 import { invalidateTaskData, useCreateTask, useDateCtx, useSetStatus } from '@/modules/tasks/hooks';
 import { TaskDetailPanel } from '@/modules/tasks/TaskDetailPanel';
-import { todayHeading, useMidnightRefresh, useToday } from './hooks';
+import { todayHeading, useMidnightRefresh, useReportAppReady, useToday } from './hooks';
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: 'danger' }) {
   return (
@@ -320,6 +320,7 @@ export function TodayPage() {
   const [addOpen, setAddOpen] = useState(false);
   const create = useCreateTask(() => setAddOpen(false));
   useMidnightRefresh(ctx.timezone);
+  useReportAppReady(!!data);
   const { data: missed } = useMissedReminders();
   const missedDeferred = useUiStore((s) => s.missedDeferred);
   const setMissedDeferred = useUiStore((s) => s.setMissedDeferred);
