@@ -10,6 +10,9 @@ src-tauri/gen/
 .claude/worktrees/
 .claude/skills/
 
+# Khoá ký updater: không bao giờ commit
+*.key
+
 # Fixture DB của bản trước (test nâng cấp) cần được commit
 !src-tauri/tests/fixtures/*.db
 

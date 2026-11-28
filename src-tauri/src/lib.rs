@@ -89,6 +89,9 @@ pub fn run() {
         // dialog và opener chỉ gọi từ Rust; frontend không được cấp quyền.
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // updater và process (relaunch) chỉ gọi từ cửa sổ chính, quyền khai báo ở capabilities/main.json.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let dirs = AppDirs::new(system::resolve_data_dir(app.path().app_local_data_dir()?));
             std::fs::create_dir_all(&dirs.data)?;

@@ -19,6 +19,10 @@ export async function waitForApp(): Promise<void> {
   );
   const got = path.resolve((info as { dataDir: string }).dataDir).toLowerCase();
   const want = path.resolve(path.join(e2eRoot(), 'data')).toLowerCase();
+  // Bản E2E (debug) không được tự kiểm tra cập nhật: không gọi mạng.
+  if ((info as { autoUpdateCheck?: boolean }).autoUpdateCheck !== false) {
+    throw new Error('Bản E2E đang bật tự kiểm tra cập nhật (autoUpdateCheck phải là false)');
+  }
   if (got !== want) {
     throw new Error(
       `App không dùng thư mục E2E (got ${got}, want ${want}); dừng để bảo vệ dữ liệu thật`,

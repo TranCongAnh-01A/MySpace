@@ -390,10 +390,11 @@ export function mockExportJson(): Promise<string | null> {
 
 export function mockAppInfo(): Promise<AppInfo> {
   return delay(() => ({
-    version: '0.1.0',
+    version: '0.9.0',
     dataDir: 'C:\\Users\\demo\\AppData\\Roaming\\LifeHub',
     logDir: 'C:\\Users\\demo\\AppData\\Roaming\\LifeHub\\logs',
     backupDir: 'C:\\Users\\demo\\AppData\\Roaming\\LifeHub\\backups',
+    autoUpdateCheck: false,
   }));
 }
 

@@ -244,7 +244,7 @@ Chi tiết từng bước: [lifehub_A-khung_impl_20261126.md](./lifehub_A-khung_
   - [x] Test migration (mở DB của bản v0.x rồi nâng cấp), test backup/restore trong CI.
 - **Xong khi:** E2E và test dữ liệu xanh trên CI.
 
-#### 📍 Phase D2: Auto Update + phát hành
+#### 📍 Phase D2: Auto Update + phát hành ✅ (phần code, tài liệu; còn bước người dùng: khoá, Secrets, tag, Publish, thử cập nhật)
 - **Việc:**
   - [ ] Plugin updater, khoá ký trong GitHub Secrets (người dùng tự tạo và dán vào, Claude không xem khoá), workflow tag `v*` → bản nháp release kèm manifest.
   - [ ] README (vấn đề, giải pháp, GIF demo, kiến trúc, ERD, link ADR, cảnh báo SmartScreen), release notes.
